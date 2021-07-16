@@ -62,12 +62,12 @@ class MemberController extends Controller
                 $_type = (int)$d->type;
                 $cni_id = !empty($d->cni_id) ? $d->cni_id : '';
                 $res = 0;
-                if ($_type == 1 && !empty($cni_id)) {
-                    $data_ewallet = Helper::get_ewallet($cni_id);
-                    $res = $data_ewallet['saldo'];
-                }
+                // if ($_type == 1 && !empty($cni_id)) {
+                    // $data_ewallet = Helper::get_ewallet($cni_id);
+                    // $res = $data_ewallet['saldo'];
+                // }
                 unset($d->ewallet);
-                $d->ewallet = $res;
+                // $d->ewallet = $res;
                 $_data[] = $d;
             }
 
@@ -84,6 +84,7 @@ class MemberController extends Controller
     function detail(Request $request)
     {
         $id_member = (int)$request->id_member;
+		$id_token = (int)$request->id_token_fcm > 0 ? (int)$request->id_token_fcm : 0;
         $where = ['deleted_at' => null, 'id_member' => $id_member];
         $count = Members::where($where)->count();
         $result = array(
@@ -99,14 +100,19 @@ class MemberController extends Controller
             $type = (int)$data->type;
             $cni_id = !empty($data->cni_id) ? $data->cni_id : '';
             $res = 0;
-            if ($type == 1 && !empty($cni_id)) {
-                $data_ewallet = Helper::get_ewallet($cni_id);
-                $res = $data_ewallet['saldo'];
-            }
+            // if ($type == 1 && !empty($cni_id)) {
+                // $data_ewallet = Helper::get_ewallet($cni_id,$request->all(),'profile_member');
+                // $res = $data_ewallet['saldo'];
+            // }
+			if($id_token > 0){				
+				$fcm_token = DB::table('fcm_token')->where(array('id_token_fcm' => $id_token))->first();
+			}
             unset($data->photo);
             unset($data->ewallet);
+			$data->id_token_fcm = $id_token;
+			$data->token_fcm = isset($fcm_token->token_fcm) ? $fcm_token->token_fcm : '';
             $data->photo = $photo;
-            $data->ewallet = $res;
+            $data->ewallet = 0;
             $result = array(
                 'err_code'  => '00',
                 'err_msg'   => 'ok',
@@ -128,6 +134,8 @@ class MemberController extends Controller
         $data->cni_id_ref = $request->cni_id_ref;
         $data->nama = $request->nama;
         $data->type = (int)$request->type;
+		if($request->has('id_sm') && !empty($request->id_sm)) $data->id_sm = $request->id_sm;
+		if($request->has('tipe_sm') && (int)$request->id_sm > 0) $data->tipe_sm = (int)$request->tipe_sm;
         $data->ewallet = 0;
         $verify_code = rand(1000, 9999);
         $data->verify_phone = $verify_code;
@@ -216,7 +224,7 @@ class MemberController extends Controller
             return false;
         }
         $save = $data->save();
-        Helper::send_sms($data->phone, $verify_code);
+        Helper::send_sms($data->phone, $verify_code,$request->all(),'register_member');
         if ($save) {
             $setting = DB::table('setting')->get()->toArray();
             $out = array();
@@ -227,7 +235,7 @@ class MemberController extends Controller
             }
             $content_member = $out['content_reg'];
             $content = str_replace('[#name#]', $data->nama, $content_member);
-            $content = str_replace('[#verify_link#]', $verify_code, $content);
+            $content = str_replace('[#kode_otp#]', $verify_code, $content);
             $data->content = $content;
             Mail::send([], ['users' => $data], function ($message) use ($data) {
                 $message->to($data->email, $data->nama)->subject('Register')->setBody($data->content, 'text/html');
@@ -313,10 +321,10 @@ class MemberController extends Controller
                 $type = (int)$data->type;
                 $cni_id = !empty($data->cni_id) ? $data->cni_id : '';
                 $res = 0;
-                if ($type == 1 && !empty($cni_id)) {
-                    $data_ewallet = Helper::get_ewallet($cni_id);
-                    $res = $data_ewallet['saldo'];
-                }
+                // if ($type == 1 && !empty($cni_id)) {
+                    // $data_ewallet = Helper::get_ewallet($cni_id, $request->all(),'login_member');
+                    // $res = $data_ewallet['saldo'];
+                // }
                 Helper::last_login($data->id_member);
                 //$data->password = $password;
                 $data->ewallet = $res;
@@ -337,7 +345,7 @@ class MemberController extends Controller
                 $result = array(
                     'err_code'  => '05',
                     'err_msg'   => 'akun belum diverifikasi',
-                    'data'      => null
+                    'data'      => $data
                 );
             }
         }
@@ -549,8 +557,23 @@ class MemberController extends Controller
             $data->updated_at = $tgl;
             $data->updated_by = $id_member;
             $data->save();
-            Helper::send_sms($data->phone, $verify_code);
+            //Helper::send_sms($data->phone, $verify_code);
         }
+		$setting = DB::table('setting')->get()->toArray();
+        $out = array();
+        if (!empty($setting)) {
+            foreach ($setting as $val) {
+                $out[$val->setting_key] = $val->setting_val;
+            }
+        }
+		$content_member = '';
+        $content_member = $out['content_reg'];
+        $content = str_replace('[#name#]', $data->nama, $content_member);
+        $content = str_replace('[#kode_otp#]', $data->verify_phone, $content);
+        $data->content = $content;
+        Mail::send([], ['users' => $data], function ($message) use ($data) {
+            $message->to($data->email, $data->nama)->subject('Register')->setBody($data->content, 'text/html');
+        });
         $result = array(
             'err_code'      => '00',
             'err_msg'       => 'ok',
@@ -595,47 +618,58 @@ class MemberController extends Controller
         $tgl = date('Y-m-d H:i:s');
         $email = $request->email;
         if (!empty($email)) {
-            $data = Members::whereRaw("LOWER(email) = '" . strtolower($email) . "'")->first();
-            if ((int)$data->verify_email <= 0) {
-                $result = array(
-                    'err_code'  => '07',
-                    'err_msg'   => 'email belum terverifikasi',
-                    'data'      => null
-                );
-                return response($result);
-                return false;
-            }
-            $alphabet = "abcdefghijklmnopqrstuwxyzABCDEFGHIJKLMNOPQRSTUWXYZ0123456789";
-            $pass = array(); //remember to declare $pass as an array
-            $alphaLength = strlen($alphabet) - 1; //put the length -1 in cache
-            for ($i = 0; $i < 8; $i++) {
-                $n = rand(0, $alphaLength);
-                $pass[] = $alphabet[$n];
-            }
-            $new_pass = implode($pass);
-            $data->pass = Crypt::encryptString(strtolower($new_pass));
-            $data->updated_at = $tgl;
-            $data->save();
-            $setting = DB::table('setting')->get()->toArray();
-            $out = array();
-            if (!empty($setting)) {
-                foreach ($setting as $val) {
-                    $out[$val->setting_key] = $val->setting_val;
-                }
-            }
-            $content_member = $out['content_forgotPass'];
-            $content = str_replace('[#name#]', $data->nama, $content_member);
-            $content = str_replace('[#email#]', $data->email, $content);
-            $content = str_replace('[#new_pass#]', $new_pass, $content);
-            $data->content = $content;
-            Mail::send([], ['users' => $data], function ($message) use ($data) {
-                $message->to($data->email, $data->nama)->subject('Forgot Password')->setBody($data->content, 'text/html');
-            });
-            $result = array(
-                'err_code'  => '00',
-                'err_msg'   => 'ok',
-                'data'      => $data
-            );
+            $cnt = Members::whereRaw("LOWER(email) = '" . strtolower($email) . "'")->count();
+			if((int)$cnt > 0){
+				$data = Members::whereRaw("LOWER(email) = '" . strtolower($email) . "'")->first();
+				if ((int)$data->verify_email <= 0) {
+					$result = array(
+						'err_code'  => '07',
+						'err_msg'   => 'email belum terverifikasi',
+						'data'      => null
+					);
+					return response($result);
+					return false;
+				}
+				$alphabet = "abcdefghijklmnopqrstuwxyzABCDEFGHIJKLMNOPQRSTUWXYZ0123456789";
+				$pass = array(); //remember to declare $pass as an array
+				$alphaLength = strlen($alphabet) - 1; //put the length -1 in cache
+				for ($i = 0; $i < 8; $i++) {
+					$n = rand(0, $alphaLength);
+					$pass[] = $alphabet[$n];
+				}
+				$new_pass = implode($pass);
+				$data->pass = Crypt::encryptString(strtolower($new_pass));
+				$data->updated_at = $tgl;
+				$data->save();
+				$setting = DB::table('setting')->get()->toArray();
+				$out = array();
+				if (!empty($setting)) {
+					foreach ($setting as $val) {
+						$out[$val->setting_key] = $val->setting_val;
+					}
+				}
+				$content_member = $out['content_forgotPass'];
+				$content = str_replace('[#name#]', $data->nama, $content_member);
+				$content = str_replace('[#email#]', $data->email, $content);
+				$content = str_replace('[#new_pass#]', $new_pass, $content);
+				$data->content = $content;
+				Mail::send([], ['users' => $data], function ($message) use ($data) {
+					$message->to($data->email, $data->nama)->subject('Forgot Password')->setBody($data->content, 'text/html');
+				});
+				$result = array(
+					'err_code'  => '00',
+					'err_msg'   => 'ok',
+					'data'      => $data
+				);
+				
+			}else{
+				$result = array(
+					'err_code'  => '04',
+					'err_msg'   => 'email not found',
+					'data'      => null
+				);
+			}
+            
         } else {
             $result = array(
                 'err_code'  => '06',
@@ -732,7 +766,7 @@ class MemberController extends Controller
         $count = 0;
         $where = array('product.deleted_at' => null, 'wishlist.id_member' => $id_member);
         if (!empty($keyword)) {
-            $_data = DB::table('product')->select('product.product_name', 'wishlist.*')
+            $_data = DB::table('product')->select('product.product_name','kode_produk','short_description','wishlist.*')
                 ->leftJoin('wishlist', 'wishlist.id_product', '=', 'product.id_product')
                 ->where($where)->whereRaw("LOWER(product.product_name) like '%" . $keyword . "%'")->get();
             $count = count($_data);
@@ -743,7 +777,7 @@ class MemberController extends Controller
             //$count = count($ttl_data);
             $per_page = $per_page > 0 ? $per_page : $count;
             $offset = ($page_number - 1) * $per_page;
-            $_data = DB::table('product')->select('product.product_name', 'product.img', 'wishlist.*')
+            $_data = DB::table('product')->select('product.product_name', 'product.img','kode_produk','short_description','wishlist.*')
                 ->leftJoin('wishlist', 'wishlist.id_product', '=', 'product.id_product')
                 ->where($where)->offset($offset)->limit($per_page)->orderBy($sort_column, $sort_order)->get();
         }
@@ -967,14 +1001,27 @@ class MemberController extends Controller
         $data = array();
         $result = array();
         $id_member = (int)$request->id_member > 0 ? Helper::last_login((int)$request->id_member) : 0;
-        $status = (int)$request->status > 0 ? (int)$request->status : -1;
-        $sql = "select id_transaksi from transaksi where id_member=$id_member and status=0 and expired_payment::timestamp <= '" . $tgl . "'";
+        $status = (int)$request->status >= 0 ? (int)$request->status : -1;
+        $sql = "select id_transaksi,ewallet,ttl_price, id_member,type_member from transaksi where id_member=$id_member and status=0 and expired_payment::timestamp <= '" . $tgl . "'";
         $trans_expired = DB::select(DB::raw($sql));
+		$whereIn = array();
+		$dt_refund_ewallet = array();
         if(count($trans_expired) > 0){
-            // update status ke expired payment
-            // foreach($trans_expired as $te){
-            //     $whereIn[] = $te->id_transaksi;
-            // }
+            //update status ke expired payment
+            foreach($trans_expired as $te){
+                $whereIn[] = $te->id_transaksi;
+				$dt_refund_ewallet[] = array(
+						'id_transaksi'	=> $te->id_transaksi,
+						'ewallet'		=> $te->ewallet,
+						'ttl_price'		=> $te->ttl_price,
+						'id_member'		=> $te->id_member,
+						'status'		=> 0,
+						'created_at'	=> $tgl
+					);
+            }
+			DB::table('transaksi')->where(array("status" => 0))
+                ->whereIn('id_transaksi', $whereIn)->update(array("status"=>2,"cek_refund_ewallet"=>1));
+			if(!empty($dt_refund_ewallet)) DB::table('refund_ewallet')->insert($dt_refund_ewallet);
         }
         $sort_column = !empty($request->sort_column) ? $request->sort_column : 'id_transaksi';
         $sort_order = !empty($request->sort_order) ? $request->sort_order : 'DESC';
@@ -982,18 +1029,10 @@ class MemberController extends Controller
         if (in_array($sort_column, $column_int)) $sort_column = $sort_column . "::integer";
         $sort_column = $sort_column . " " . $sort_order;
         $where = array('transaksi.id_member' => $id_member);
-        if ($status > -1) $where += array('status' => (int)$status);
+        if ($status > -1) $where += array('transaksi.status' => (int)$status);
         $count = 0;
         $count = DB::table('transaksi')->where($where)->count();
-        $_data = DB::table('transaksi')->select(
-            'transaksi.*',
-            'members.nama as nama_member',
-            'members.email',
-            'members.phone as phone_member',
-            'members.cni_id'
-        )
-            ->where($where)->leftJoin('members', 'members.id_member', '=', 'transaksi.id_member')
-            ->orderByRaw($sort_column)->get();
+        
         $result = array(
             'err_code'      => '04',
             'err_msg'       => 'data not found',
@@ -1001,6 +1040,15 @@ class MemberController extends Controller
             'data'          => null
         );
         if ($count > 0) {
+			$_data = DB::table('transaksi')->select(
+				'transaksi.*',
+				'members.nama as nama_member',
+				'members.email',
+				'members.phone as phone_member',
+				'members.cni_id'
+			)
+				->where($where)->leftJoin('members', 'members.id_member', '=', 'transaksi.id_member')
+				->orderByRaw($sort_column)->get();
 			$whereIn = array();
 			foreach($_data as $_d){
 				$whereIn[] = $_d->id_transaksi;
@@ -1017,6 +1065,8 @@ class MemberController extends Controller
                 unset($d->delivery_by);
                 unset($d->key_payment);
                 unset($d->status);
+                unset($d->log_payment);
+                unset($d->onprocess_by);
                 $expiredPayment = Carbon::parse($d->expired_payment);
                 $expired = $tgl->gt($expiredPayment);
                 $status = !$expired && $status == 0 ? 0 : $status;
@@ -1034,6 +1084,502 @@ class MemberController extends Controller
         }
         return response($result);
     }
+	
+	function akun_fb(Request $request){
+		$data = array();
+        $result = array();
+        $id_member = (int)$request->id_member > 0 ? Helper::last_login((int)$request->id_member) : 0;
+		$fb = !empty($request->fb) ? $request->fb : '';
+		$data = array('fb' => $fb);
+		DB::table('members')->where('id_member', $id_member)->update($data);
+		$data += array('id_member' => $id_member);
+		$result = array(
+            'err_code'  => '00',
+            'err_msg'   => 'ok',
+            'data'      => $data
+        );
+        return response($result);
+	}
+	
+	function akun_ig(Request $request){
+		$data = array();
+        $result = array();
+        $id_member = (int)$request->id_member > 0 ? Helper::last_login((int)$request->id_member) : 0;
+		$ig = !empty($request->ig) ? $request->ig : '';
+		$data = array('ig' => $ig);
+		DB::table('members')->where('id_member', $id_member)->update($data);
+		$data += array('id_member' => $id_member);
+		$result = array(
+            'err_code'  => '00',
+            'err_msg'   => 'ok',
+            'data'      => $data
+        );
+        return response($result);
+	}
+	
+	function add_sm(Request $request){
+		$tgl = date('Y-m-d H:i:s');
+		$id_member = (int)$request->id_member > 0 ? Helper::last_login((int)$request->id_member) : 0;
+		$tipe = $request->has('tipe') ? $request->tipe : '';
+		$nama = $request->has('nama') ? $request->nama : '';
+		$email = $request->has('email') ? $request->email : '';
+		$id_sm = $request->has('id_sm') ? $request->id_sm : '';
+		$data = array(
+			'id_member' 	=> $id_member,
+			'tipe' 			=> (int)$tipe,
+			'nama' 			=> $nama,
+			'email' 		=> $email,
+			'id_sm' 		=> $id_sm,
+			'created_at' 	=> $tgl
+		);
+		$id = DB::table('list_social_media')->insertGetId($data, "id");
+		$result = array();
+        if ($id > 0) {
+            $data += array('id' => $id);
+            $result = array(
+                'err_code'  => '00',
+                'err_msg'   => 'ok',
+                'data'      => $data
+            );
+        } else {
+            $result = array(
+                'err_code'  => '05',
+                'err_msg'   => 'insert has problem',
+                'data'      => null
+            );
+        }
+        return response($result);
+	}
+	
+	function get_cniid_sm(Request $request){
+		$keyword  = $request->has('keyword') ? $request->keyword : '';
+		$tipe = $request->has('tipe') ? (int)$request->tipe : 0;
+		$where = array();
+		if((int)$tipe > 0)  $where = array('list_social_media.tipe' => $tipe);
+		$cnt = DB::table('list_social_media')->where($where)->where(function($query) use ($keyword) {
+                $query->whereRaw("list_social_media.nama like '%" . $keyword . "%' or list_social_media.id_sm like '%" . $keyword . "%' ");
+            })->count();
+		$result = array();
+		$result = array(
+            'err_code'  => '04',
+            'err_msg'   => 'data not found',
+            'data'      => $keyword
+        );
+		if((int)$cnt > 0){
+			$data = DB::table('list_social_media')->select('list_social_media.*','members.nama as nama_member','members.cni_id')
+			->where($where)->where(function($query) use ($keyword) {
+				$query->whereRaw("list_social_media.nama like '%" . $keyword . "%' or list_social_media.id_sm like '%" . $keyword . "%' ");
+                //$query->where('list_social_media.nama', $keyword)
+                     
+            })->leftJoin('members', 'members.id_member', '=', 'list_social_media.id_member')->get();
+			$result = array(
+				'err_code'  => '00',
+				'err_msg'   => 'ok',
+				'data'      => $data
+			);
+		}
+		return response($result);
+	}
+	
+	function get_list_sm(Request $request){
+		$id_member = $request->has('id_member') ? (int)$request->id_member : 0;		
+		$tipe = $request->has('tipe') ? (int)$request->tipe : 0;	
+		$where = array();
+		$where = array('list_social_media.id_member'=>$id_member);
+		if((int)$tipe > 0) $where += array('list_social_media.tipe' => $tipe);
+		$data_sm = DB::table('list_social_media')->select('list_social_media.*','members.nama as nama_member','members.cni_id')
+			->where($where)
+			->leftJoin('members', 'members.id_member', '=', 'list_social_media.id_member')->get();
+		
+		$list_dr = array();
+		$result = array(
+			'err_code'  => '04',
+			'err_msg'   => 'data not found',
+			'data'      => null
+		);
+		if((int)count($data_sm) > 0){
+			$cni_id = isset($data_sm) ? $data_sm[0]->cni_id : '';
+			if(!empty($cni_id)){
+				$data_ref_cnt = DB::table('members')->where(array('cni_id_ref'=>$cni_id))->count();
+				if((int)$data_ref_cnt > 0){
+					$data_ref = DB::table('members')->where(array('cni_id_ref'=>$cni_id))->get();
+					foreach($data_ref as $dr){
+						$list_dr[$dr->cni_id_ref][$dr->tipe_sm][$dr->id_sm][] = $dr->id_member; 
+					}
+				}
+			}
+			foreach($data_sm as $ds){
+				$ds->cnt_follower = isset($list_dr[$ds->cni_id][$ds->tipe][$ds->id_sm]) ? count($list_dr[$ds->cni_id][$ds->tipe][$ds->id_sm]) : 0;
+				$list_sm[] = $ds;
+			}
+			$result = array(
+				'err_code'  => '00',
+				'err_msg'   => 'ok',
+				'data'      => $data_sm
+			);
+		}
+		return response($result);
+	}
+	
+	function get_list_follower_sm(Request $request){
+		$id_member = $request->has('id_member') ? (int)$request->id_member : 0;		
+		$tipe = $request->has('tipe') ? (int)$request->tipe : 0;
+		$id_sm = $request->has('id_sm') ? $request->id_sm : '';
+		$where = array('list_social_media.id_member'=>$id_member, 'list_social_media.id_sm'=>$id_sm);
+		if((int)$tipe > 0) $where += array('list_social_media.tipe' => $tipe);
+		$data_cnt = DB::table('list_social_media')->where($where)->count();
+		$list_dr = array();
+		$result = array(
+			'err_code'  => '04',
+			'err_msg'   => 'data not found',
+			'data'      => null
+		);
+		$data_ref_cnt = 0;
+		if((int)$data_cnt > 0){
+			$data_sm = DB::table('list_social_media')->select('list_social_media.*','members.nama as nama_member','members.cni_id')
+				->where($where)
+				->leftJoin('members', 'members.id_member', '=', 'list_social_media.id_member')->first();
+			$cni_id = isset($data_sm) ? $data_sm->cni_id : '';
+			$tipe = isset($data_sm) ? (int)$data_sm->tipe : 0;
+			if(!empty($cni_id)){
+				$wheree = array();
+				$wheree = array('cni_id_ref'=>$cni_id,'id_sm'=>$id_sm,'tipe_sm'=>(int)$tipe);
+				$data_ref_cnt = DB::table('members')->where($wheree)->count();
+				$data_ref = array();
+				if((int)$data_ref_cnt > 0){
+					$data_ref = DB::table('members')->select('id_member','cni_id','nama','email','phone')->where($wheree)->get();
+					
+				}
+			}
+			$data_sm->cnt_follower = $data_ref_cnt;
+			$data_sm->list_follower = $data_ref;
+			$result = array(
+				'err_code'  	=> '00',
+				'err_msg'   	=> 'ok',
+				'data'      	=> $data_sm
+			);
+		}
+		return response($result);
+	}
+	
+	function akun_bank(Request $request){
+		$data = array();
+        $result = array();
+        $id_member = (int)$request->id_member > 0 ? Helper::last_login((int)$request->id_member) : 0;
+		$nama_bank = !empty($request->nama_bank) ? $request->nama_bank : '';
+		$nama_rek = !empty($request->nama_rek) ? $request->nama_rek : '';
+		$no_rek = !empty($request->no_rek) ? $request->no_rek : '';
+		$data = array(
+			'nama_bank' => $nama_bank,
+			'nama_rek' 	=> $nama_rek,
+			'no_rek' 	=> $no_rek
+		);
+		DB::table('members')->where('id_member', $id_member)->update($data);
+		$data += array('id_member' => $id_member);
+		$result = array(
+            'err_code'  => '00',
+            'err_msg'   => 'ok',
+            'data'      => $data
+        );
+        return response($result);
+	}
+	
+	function req_cashout(Request $request){
+		$tgl = date('Y-m-d H:i:s');
+		$dt = array();
+        $id_member = (int)$request->id_member > 0 ? Helper::last_login((int)$request->id_member) : 0;
+		$nominal = !empty($request->nominal) ? $request->nominal : '';
+		// if($nominal <= 100000){
+			// $dt = array(
+				// "err_code"      => "07",
+				// "result"        => "Nominal harus diatas 100000",
+				// "err_msg"       => "Nominal harus diatas 100000",
+				// "data"			=> ''
+			   
+			// );
+			// return response($dt);
+			// return $false;
+		// }
+		$data = Members::where(array('id_member'=>$id_member))->first();
+        $type = (int)$data->type;
+        $cni_id = !empty($data->cni_id) ? $data->cni_id : '';		
+		
+		if($type != 1){
+			$dt = array(
+				"err_code"      => "07",
+				"result"        => "Type member tidak sesuai",
+				"err_msg"       => "Type member tidak sesuai",
+				"data"			=> $data
+			   
+			);
+			return response($dt);
+			return $false;
+		}
+		if(empty($cni_id)){
+			$dt = array(
+				"err_code"      => "04",
+				"result"        => "CNI ID tidak ditemukan",
+				"err_msg"       => "CNI ID tidak ditemukan",
+				"data"			=> $data
+			   
+			);
+			return response($dt);
+			return $false;
+		}
+		$url = env('URL_REQUEST_CASHOUT');
+        $token = env('TOKEN_REQUEST_CASHOUT');
+		$postfields = array(
+            "nomorn" => $cni_id,
+            "token" => $token,
+			"nominalcashout"=>$nominal
+        );
+		$curl = curl_init();
+		curl_setopt_array($curl, array(
+            CURLOPT_URL => $url,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING => '',
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_TIMEOUT => 0,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST => 'POST',
+            CURLOPT_POSTFIELDS => json_encode($postfields),
+            CURLOPT_HTTPHEADER => array(
+                'Content-Type: application/json'
+            ),
+        ));
+		$response = curl_exec($curl);
+        curl_close($curl);
+        $_res =  json_encode($response);
+        $res =  json_decode($_res);
+		$dt_log = array();
+		$dt_history = array();
+		$dt_log = array(
+			"api_name"		=> "req_cashout",
+			"param_from_fe"	=> serialize($request->all()),
+			"param_to_cni"	=> serialize($postfields),
+			"endpoint"		=> $url,
+			"responses"		=> serialize($res),
+			"id_transaksi"	=> $id_member,
+			"created_at"	=> $tgl
+		);
+		DB::table('log_api')->insert($dt_log);
+		return response($res)->header('Content-Type', "application/json");
+	}
+	
+	function history_cashout(Request $request){
+		$result = array();
+		$tgl = date('Y-m-d H:i:s');
+        $id_member = (int)$request->id_member > 0 ? Helper::last_login((int)$request->id_member) : 0;
+		$data = Members::where(array('id_member'=>$id_member))->first();
+        $type = isset($data) && (int)$data->type > 0 ? (int)$data->type : 2;
+        $cni_id = isset($data) && !empty($data->cni_id) ? $data->cni_id : '';
+		if($type != 1){
+			$result = array(
+				"err_code"      => "07",
+				"result"        => "Type member tidak sesuai",
+				"err_msg"       => "Type member tidak sesuai",
+				"data"			=> $data
+			   
+			);
+			return response($result);
+			return $false;
+		}
+		if(empty($cni_id)){
+			$result = array(
+				"err_code"      => "04",
+				"result"        => "CNI ID tidak ditemukan",
+				"err_msg"       => "CNI ID tidak ditemukan",
+				"data"			=> $data
+			   
+			);
+			return response($result);
+			return $false;
+		}
+		
+		$url = env('URL_HISTORY_CASHOUT');
+        $token = env('TOKEN_HISTORY_CASHOUT');
+		$postfields = array(
+            "nomorn" => $cni_id,
+            "token" => $token
+        );
+		$curl = curl_init();
+		curl_setopt_array($curl, array(
+            CURLOPT_URL => $url,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING => '',
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_TIMEOUT => 0,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST => 'POST',
+            CURLOPT_POSTFIELDS => json_encode($postfields),
+            CURLOPT_HTTPHEADER => array(
+                'Content-Type: application/json'
+            ),
+        ));
+		$response = curl_exec($curl);
+        curl_close($curl);
+        $_res =  json_encode($response);
+        $res =  json_decode($_res);
+       
+		$dt_log = array();
+		$dt_history = array();
+		$dt_log = array(
+			"api_name"		=> "history_cashout",
+			"param_from_fe"	=> serialize($request->all()),
+			"param_to_cni"	=> serialize($postfields),
+			"endpoint"		=> $url,
+			"responses"		=> serialize($res),
+			"id_transaksi"	=> $id_member,
+			"created_at"	=> $tgl
+		);
+		DB::table('log_api')->insert($dt_log);		
+		return response($res)->header('Content-Type', "application/json");	
+		
+	}
+
+	function history_wallet(Request $request){
+		$result = array();
+		$tgl = date('Y-m-d H:i:s');
+        $id_member = (int)$request->id_member > 0 ? Helper::last_login((int)$request->id_member) : 0;
+		$data = Members::where(array('id_member'=>$id_member))->first();
+        $type = isset($data) && (int)$data->type > 0 ? (int)$data->type : 2;
+        $cni_id = isset($data) && !empty($data->cni_id) ? $data->cni_id : '';
+		if($type != 1){
+			$result = array(
+				"err_code"      => "07",
+				"result"        => "Type member tidak sesuai",
+				"err_msg"       => "Type member tidak sesuai",
+				"data"			=> $data
+			   
+			);
+			return response($result);
+			return $false;
+		}
+		if(empty($cni_id)){
+			$result = array(
+				"err_code"      => "04",
+				"result"        => "CNI ID tidak ditemukan",
+				"err_msg"       => "CNI ID tidak ditemukan",
+				"data"			=> $data
+			   
+			);
+			return response($result);
+			return $false;
+		}
+		
+		$url = env('URL_HISTORY_WALLET');
+        $token = env('TOKEN_HISTORY_WALLET');
+		$postfields = array(
+            "nomorn" => $cni_id,
+            "token" => $token
+        );
+		$curl = curl_init();
+		curl_setopt_array($curl, array(
+            CURLOPT_URL => $url,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING => '',
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_TIMEOUT => 0,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST => 'POST',
+            CURLOPT_POSTFIELDS => json_encode($postfields),
+            CURLOPT_HTTPHEADER => array(
+                'Content-Type: application/json'
+            ),
+        ));
+		$response = curl_exec($curl);
+        curl_close($curl);
+        $_res =  json_encode($response);
+        $res =  json_decode($_res);
+       
+		$dt_log = array();
+		$dt_history = array();
+		$dt_log = array(
+			"api_name"		=> "history_wallet",
+			"param_from_fe"	=> serialize($request->all()),
+			"param_to_cni"	=> serialize($postfields),
+			"endpoint"		=> $url,
+			"responses"		=> serialize($res),
+			"id_transaksi"	=> $id_member,
+			"created_at"	=> $tgl
+		);
+		DB::table('log_api')->insert($dt_log);		
+		return response($res)->header('Content-Type', "application/json");	
+		
+	}
+	
+	function set_token_fcm(Request $request){
+		$tgl = date('Y-m-d H:i:s');
+        $id_member = (int)$request->id_member > 0 ? Helper::last_login((int)$request->id_member) : 0;
+        $id = (int)$request->id_token_fcm  > 0 ? (int)$request->id_token_fcm  : 0;
+		$token_fcm = $request->token_fcm;
+		if ($id_member <= 0) {
+            $result = array(
+                'err_code'  => '06',
+                'err_msg'   => 'id_member required',
+                'data'      => null
+            );
+            return response($result);
+            return false;
+        }
+		$data = array(
+			'id_member'	=> $id_member,
+			'token_fcm'	=> $token_fcm
+		);
+		if ($id > 0) {			
+            $data += array("updated_at" => $tgl);
+            DB::table('fcm_token')->where('id_token_fcm', $id)->update($data);
+        } else {
+            $data += array("created_at" => $tgl);
+            $id = DB::table('fcm_token')->insertGetId($data, "id_token_fcm");
+        }
+		$result = array();
+        if ($id > 0) {
+            $data += array('id_token_fcm' => $id);
+           
+            $result = array(
+                'err_code'  => '00',
+                'err_msg'   => 'ok',
+                'data'      => $data
+            );
+        } else {
+            $result = array(
+                'err_code'  => '05',
+                'err_msg'   => 'insert has problem',
+                'data'      => null
+            );
+        }
+        return response($result);
+	}
+	
+	function history_notif(Request $request){		
+        $sort_column = "id_notif::integer DESC";
+        $id_member = (int)$request->id_member > 0 ? Helper::last_login((int)$request->id_member) : 0;
+		$where = array('history_notif.id_member' => $id_member);
+		$count = DB::table('history_notif')->where($where)->count();
+		
+		$result = array();
+		$result = array(
+            'err_code'      => '04',
+            'err_msg'       => 'data not found',
+            'total_data'    => $count,
+            'data'          => null
+        );
+		if($count > 0){
+			$data = DB::table('history_notif')->where($where)->orderByRaw($sort_column)->get();
+			$result = array(
+				'err_code'      => '00',
+				'err_msg'       => 'ok',
+				'total_data'    => $count,
+				'data'          => $data
+			);
+		}
+		 return response($result);
+	}
+
 
     function test_mail()
     {

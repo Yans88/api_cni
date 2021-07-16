@@ -1,0 +1,2 @@
+<?php
+define('VALIDATION_EXCEPTION',422);
