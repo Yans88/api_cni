@@ -876,9 +876,9 @@ class MemberController extends Controller
 		$selects = array(
 			'address_member.*',
             'provinsi_name',
-                    'provinsi.kode_jne as kode_jne_prov',
-                    'provinsi.kode_lp as kode_lp_prov',
-                    'city_name',
+            'provinsi.kode_jne as kode_jne_prov',
+            'provinsi.kode_lp as kode_lp_prov',
+            'city_name',
                     'city.kode_jne as kode_jne_city',
                     'city.kode_lp as kode_lp_city',
                     'kec_name',
@@ -1124,6 +1124,17 @@ class MemberController extends Controller
 		$nama = $request->has('nama') ? $request->nama : '';
 		$email = $request->has('email') ? $request->email : '';
 		$id_sm = $request->has('id_sm') ? $request->id_sm : '';
+		$cnt = DB::table('list_social_media')->where(array('id_sm'=>$id_sm))->count();
+		$result = array();
+		if((int)$cnt > 0){
+			$result = array(
+                'err_code'  => '07',
+                'err_msg'   => 'id_sm already exist',
+                'data'      => null
+            );
+            return response($result);
+            return false;
+		}
 		$data = array(
 			'id_member' 	=> $id_member,
 			'tipe' 			=> (int)$tipe,
@@ -1133,7 +1144,7 @@ class MemberController extends Controller
 			'created_at' 	=> $tgl
 		);
 		$id = DB::table('list_social_media')->insertGetId($data, "id");
-		$result = array();
+		
         if ($id > 0) {
             $data += array('id' => $id);
             $result = array(
