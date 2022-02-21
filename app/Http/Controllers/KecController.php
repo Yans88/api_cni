@@ -47,14 +47,14 @@ class KecController extends Controller
                 ->leftJoin('provinsi', 'provinsi.id_provinsi', '=', 'city.id_prov')
                 ->offset($offset)->limit($per_page)->orderBy($sort_column, $sort_order)->get();
         }
-		$provinsi = '';
-		$city = '';
-		if($count == 0){
-			$data_city = DB::table('city')->where(array('id_city' => $request->id_city))->first();
-			$data_prov = DB::table('provinsi')->where(array('id_provinsi' => $data_city->id_prov))->first();
-			$provinsi = $data_prov->provinsi_name;
-			$city = $data_city->city_name;
-		}
+        $provinsi = '';
+        $city = '';
+        if ($count == 0) {
+            $data_city = DB::table('city')->where(array('id_city' => $request->id_city))->first();
+            $data_prov = DB::table('provinsi')->where(array('id_provinsi' => $data_city->id_prov))->first();
+            $provinsi = $data_prov->provinsi_name;
+            $city = $data_city->city_name;
+        }
         $result = array(
             'err_code'      => '04',
             'err_msg'       => 'data not found',
@@ -94,7 +94,7 @@ class KecController extends Controller
         $id = (int)$request->id_kecamatan > 0 ? (int)$request->id_kecamatan : 0;
         $data = array(
             'kec_name' => $request->kec_name,
-			'id_kec_cni' => (int)$request->id_kec_cni,
+            'id_kec_cni' => (int)$request->id_kec_cni,
             'kode_jne'      => strtoupper($request->kode_jne),
             'kode_lp'      => strtoupper($request->kode_lp)
         );

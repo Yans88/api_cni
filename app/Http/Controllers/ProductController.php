@@ -19,6 +19,7 @@ class ProductController extends Controller
     public function __construct()
     {
         //
+        Helper::notify_cart();
     }
 
     //
@@ -41,47 +42,88 @@ class ProductController extends Controller
         $id_member = (int)$request->id_member > 0 ? Helper::last_login((int)$request->id_member) : 0;
         $data_member = DB::table('members')->where(array('id_member' => $id_member))->first();
         $type = !empty($data_member) ? (int)$data_member->type : 0;
-		$sc = $sort_column;
+        $cni_id = !empty($data_member) ? $data_member->cni_id : '';
+        $sc = $sort_column;
         if ($sort_column == "harga" || $sort_column == "harga_member" || $sort_column == "harga_konsumen") {
             //$sort_column = $type == 1 ? "harga_member" : "harga_konsumen";
             $sort_column = 'product_name';
         }
-        
-        $column_int = array("harga_member", "qty", "berat", "min_pembelian", "harga_konsumen");
+
+        $column_int = array("harga_member", "qty", "berat", "min_pembelian", "harga_konsumen", "priority_number_favourite");
         if (in_array($sort_column, $column_int)) $sort_column = $sort_column . "::integer";
         $sort_column = $sort_column . " " . $sort_order;
         $where = array('product.deleted_at' => null);
         if ($id_category > 0) $where += array('product.id_category' => $id_category);
         if ($special_promo > 0) $where += array('product.special_promo' => 1);
         if ($favourite > 0) $where += array('product.favourite' => 1);
+        if ($is_cms <= 0) $where += array('product.is_active' => 1);
+
+        $is_grace_periode = 0;
+        $last_month_member = 0;
+
+        if ($is_cms <= 0) {
+            $tgll = date('Y-m-d');
+            if ($type == 2 && !empty($cni_id)) {
+                $end_date = date('Y-m-d', strtotime($data_member->end_member));
+                if ($tgll > $end_date) {
+                    $date1 = date_create($end_date);
+                    $date2 = date_create($tgll);
+                    $diff = date_diff($date1, $date2);
+                    $is_grace_periode = 16 - (int)$diff->format("%R%a");
+                }
+            }
+            if ($type == 1) {
+                $end_date = date('Y-m-d', strtotime($data_member->end_member));
+                $last_month_member_date = date('Y-m-d', strtotime("-1 months", strtotime($end_date)));
+                if ($tgll >= $last_month_member_date && $tgll <= $end_date) $last_month_member = 1;
+                if ($tgll > $end_date) {
+                    $date1 = date_create($end_date);
+                    $date2 = date_create($tgll);
+                    $diff = date_diff($date1, $date2);
+                    $is_grace_periode = 16 - (int)$diff->format("%R%a");
+                    $dataa = array("type" => 2, "updated_at" => date('Y-m-d H:i:s'));
+                    DB::table('members')->where('id_member', $id_member)->update($dataa);
+                    //$data = Members::where($where)->first();
+                }
+            }
+        }
+
         $is_wishlist = 0;
         $count = 0;
         $_data = array();
         $wishlist = array();
         $data = array();
+        $whereIn = array();
 
         $sql = '';
         $query = '';
         $_pricelist = array();
-		if($end_price > 0 || $start_price > 0){
-			$query = " and harga_konsumen >= '".$start_price."' and harga_konsumen <= '".$end_price."'";
-			if($type == 1) $query = " and harga_member >= '".$start_price."' and harga_member <= '".$end_price."'";
-		}
+        if ($end_price > 0 || $start_price > 0) {
+            if ($type >= 2) $query .= " and pricelist.harga_konsumen::numeric >= '" . $start_price . "' and pricelist.harga_konsumen::numeric <= '" . $end_price . "'";
+            if ($type == 1) $query .= " and pricelist.harga_member::numeric >= '" . $start_price . "' and pricelist.harga_member::numeric <= '" . $end_price . "'";
+        }
+        if ((int)$last_month_member == 0 && (int)$is_grace_periode <= 0) {
+            $query .= " and ABS(product.id_product) > 1";
+        }
+
         if ($is_cms == 0) {
-            $sql = "select product.id_product, id_pricelist, pricelist.harga_member, pricelist.harga_konsumen,pv,rv from product left join pricelist on pricelist.id_product = product.id_product
+            $sql = "select product.id_product, id_pricelist, pricelist.harga_member::numeric, pricelist.harga_konsumen::numeric,pv,rv from product left join pricelist on pricelist.id_product = product.id_product
             where product.deleted_at is null and pricelist.deleted_at is null and 
            ((product.start_date::timestamp <= '" . $tgl . "' and product.end_date::timestamp >= '" . $tgl . "') or 
            (product.start_date::timestamp >= '" . $tgl . "' and product.end_date::timestamp <= '" . $tgl . "')) and 
            ((pricelist.start_date::timestamp <= '" . $tgl . "' and pricelist.end_date::timestamp >= '" . $tgl . "') or 
            (pricelist.start_date::timestamp >= '" . $tgl . "' and pricelist.end_date::timestamp <= '" . $tgl . "'))";
-		   $sql .= $query;
+            $sql .= $query;
         } else {
             $sql_pricelist = '';
             $sql_pricelist = "select id_pricelist,id_product, harga_konsumen,harga_member,pv,rv from pricelist 
             where deleted_at is null and ((start_date::timestamp <= '" . $tgl . "' and end_date::timestamp >= '" . $tgl . "') or (start_date::timestamp >= '" . $tgl . "' and end_date::timestamp <= '" . $tgl . "'))";
+
+
             $pricelist_active = DB::select(DB::raw($sql_pricelist));
             if (!empty($pricelist_active)) {
                 foreach ($pricelist_active as $pa) {
+                    $whereIn[] = $pa->id_product;
                     $_pricelist['id_pricelist'][$pa->id_product] = $pa->id_pricelist;
                     //$_pricelist['id_product'][$pa->id_product] = $pa->id_product;
                     $_pricelist['harga_member'][$pa->id_product] = $pa->harga_member;
@@ -93,7 +135,7 @@ class ProductController extends Controller
             $sql = "select product.id_product from product where product.deleted_at is null";
         }
         $product_active = DB::select(DB::raw($sql));
-        $whereIn = array();
+        // Log::info(serialize($whereIn));
         //$_pricelist = array();
         if (!empty($product_active)) {
             foreach ($product_active as $pa) {
@@ -103,7 +145,7 @@ class ProductController extends Controller
                     //$_pricelist['id_product'][$pa->id_product] = $pa->id_product;
                     $_pricelist['harga_member'][$pa->id_product] = $pa->harga_member;
                     $_pricelist['harga_konsumen'][$pa->id_product] = $pa->harga_konsumen;
-					$_pricelist['pv'][$pa->id_product] = $pa->pv;
+                    $_pricelist['pv'][$pa->id_product] = $pa->pv;
                     $_pricelist['rv'][$pa->id_product] = $pa->rv;
                 }
             }
@@ -115,8 +157,7 @@ class ProductController extends Controller
                     ->whereIn('id_product', $whereIn);
                 if ($is_cms <= 0) $_data = $_data->where('product.qty', '>', 0);
                 $_data = $_data->leftJoin('category', 'category.id_category', '=', 'product.id_category')
-                    ->where($where)->whereRaw("LOWER(product.product_name) like '%" . $keyword . "%'")
-					->orWhereRaw("LOWER(product.kode_produk) like '%" . $keyword . "%'")->get();
+                    ->where($where)->whereRaw("(LOWER(product.product_name) like '%" . $keyword . "%' or LOWER(product.kode_produk) like '%" . $keyword . "%')")->get();
                 $count = count($_data);
             } else {
                 $count = DB::table('product')->where($where);
@@ -133,14 +174,39 @@ class ProductController extends Controller
         }
 
         $result = array();
+        $_limit = array();
+        $_jml_beli = array();
         $result = array(
             'err_code'      => '04',
             'err_msg'       => 'data not found',
-            'total_data'    => $count,
+            'total_data'    => 0,
             'data'          => null
         );
 
         if ((int)$count > 0) {
+            $sql_limit = "select id_lp,id_product, limit_pembelian, start_date::timestamp, end_date::timestamp from limit_pembelian 
+            where deleted_at is null and ((start_date::timestamp <= '" . $tgl . "' and end_date::timestamp >= '" . $tgl . "') or (start_date::timestamp >= '" . $tgl . "' and end_date::timestamp <= '" . $tgl . "'))";
+            $limit_product = DB::select(DB::raw($sql_limit));
+            $jml_beli = 0;
+            if (!empty($limit_product)) {
+                foreach ($limit_product as $lp) {
+                    $_limit['id_lp'][$lp->id_product] = (int)$lp->id_lp;
+                    $_limit['limit_beli'][$lp->id_product] = (int)$lp->limit_pembelian;
+                }
+            }
+
+            if ($id_member > 0 && (int)count($limit_product) > 0) {
+                $start_date = $limit_product[0]->start_date;
+                $end_date = $limit_product[0]->end_date;
+                $sql_beli = "select sum(jml) as jml_beli, id_product from transaksi left join transaksi_detail on transaksi_detail.id_trans = transaksi.id_transaksi where id_member=$id_member and ((created_at::timestamp >= '" . $start_date . "' or created_at::timestamp <= '" . $end_date . "')) group by id_product";
+                $beli_product = DB::select(DB::raw($sql_beli));
+                if ((int)count($beli_product) > 0) {
+                    foreach ($beli_product as $lp) {
+                        $_jml_beli[$lp->id_product] = (int)$lp->jml_beli;
+                    }
+                }
+            }
+
             $where = array('id_member' => $id_member);
             $cnt_wishlist = DB::table('wishlist')->where($where)->count();
             if ((int)$cnt_wishlist > 0) {
@@ -154,33 +220,39 @@ class ProductController extends Controller
                 $is_wishlist = 0;
                 if (in_array($d->id_product, $wishlist)) $is_wishlist = 1;
                 $path_img = null;
-				if(empty($d->deleted_at) || $d->deleted_at == ''){
-					$path_img  = !empty($d->img) ? env('APP_URL') . '/api_cni/uploads/products/' . $d->img : null;
-					unset($d->created_by);
-					unset($d->updated_by);
-					unset($d->deleted_by);
-					unset($d->created_at);
-					unset($d->updated_at);
-					unset($d->deleted_at);
-					unset($d->img);
-					$d->id_pricelist = isset($_pricelist['id_pricelist'][$d->id_product]) ? $_pricelist['id_pricelist'][$d->id_product] : 0;
-					$d->harga_member = isset($_pricelist['harga_member'][$d->id_product]) ? $_pricelist['harga_member'][$d->id_product] : 0;
-					$d->harga_konsumen = isset($_pricelist['harga_konsumen'][$d->id_product]) ? $_pricelist['harga_konsumen'][$d->id_product] : 0;
-					$d->pv = isset($_pricelist['pv'][$d->id_product]) ? $_pricelist['pv'][$d->id_product] : 0;
-					$d->rv = isset($_pricelist['rv'][$d->id_product]) ? $_pricelist['rv'][$d->id_product] : 0;
-					$d->harga = $type == 1 ? $d->harga_member : $d->harga_konsumen;
-					$d->is_wishlist = $is_wishlist;
-					$d->img = $path_img;
-					$d->terjual = rand(1, 1000);
-					$data[] = $d;
-				}
+                if (empty($d->deleted_at) || $d->deleted_at == '') {
+                    $path_img  = !empty($d->img) ? env('APP_URL') . '/api_cni/uploads/products/' . $d->img : null;
+                    unset($d->created_by);
+                    unset($d->updated_by);
+                    unset($d->deleted_by);
+                    unset($d->created_at);
+                    unset($d->updated_at);
+                    unset($d->deleted_at);
+                    unset($d->img);
+                    $limit_beli = isset($_limit['id_lp'][$d->id_product]) ? (int)$_limit['limit_beli'][$d->id_product] : 9999999999;
+                    $jml_beli = isset($_jml_beli[$d->id_product]) ? (int)$_jml_beli[$d->id_product] : 0;
+                    $d->id_pricelist = isset($_pricelist['id_pricelist'][$d->id_product]) ? $_pricelist['id_pricelist'][$d->id_product] : 0;
+                    $d->harga_member = isset($_pricelist['harga_member'][$d->id_product]) ? $_pricelist['harga_member'][$d->id_product] : 0;
+                    $d->harga_konsumen = isset($_pricelist['harga_konsumen'][$d->id_product]) ? $_pricelist['harga_konsumen'][$d->id_product] : 0;
+                    $d->pv = isset($_pricelist['pv'][$d->id_product]) ? $_pricelist['pv'][$d->id_product] : 0;
+                    $d->rv = isset($_pricelist['rv'][$d->id_product]) ? $_pricelist['rv'][$d->id_product] : 0;
+                    $d->harga = $type == 1 ? $d->harga_member : $d->harga_konsumen;
+                    $d->is_wishlist = $is_wishlist;
+                    $d->img = $path_img;
+                    $d->terjual = rand(1, 1000);
+                    $d->jml_limit_beli = $limit_beli;
+                    $d->jml_beli = $jml_beli;
+                    $d->is_limit_beli = (int)$jml_beli >= (int)$limit_beli ? 1 : 0;
+                    if ($is_cms > 0) $data[] = $d;
+                    if ((int)$d->harga > 0 && $is_cms <= 0) $data[] = $d;
+                }
             }
             if ($sc == "harga" || $sc == "harga_member" || $sc == "harga_konsumen") {
                 $columns = array_column($data, $sc);
                 if ($sort_order == 'ASC') array_multisort($columns, SORT_ASC, $data);
                 if ($sort_order == 'DESC') array_multisort($columns, SORT_DESC, $data);
             }
-			
+
             $result = array(
                 'err_code'      => '00',
                 'err_msg'          => 'ok',
@@ -203,14 +275,14 @@ class ProductController extends Controller
         $where = array('product.deleted_at' => null);
         if (!empty($keyword)) {
             $_data = DB::table('product')->select('product.id_product as value', 'product_name as label')
-                ->where($where)->whereRaw("LOWER(product.product_name) like '%" . $keyword . "%'")->get();
+                ->where($where)->where('id_product', '>', 1)->whereRaw("LOWER(product.product_name) like '%" . $keyword . "%'")->get();
             $count = count($_data);
         } else {
             $count = DB::table('product')->where($where)->count();
             $per_page = $per_page > 0 ? $per_page : $count;
             $offset = ($page_number - 1) * $per_page;
             $_data = DB::table('product')->select('product.id_product as value', 'product_name as label')
-                ->where($where)->offset($offset)->limit($per_page)->orderBy($sort_column, $sort_order)->get();
+                ->where($where)->where('id_product', '>', 1)->offset($offset)->limit($per_page)->orderBy($sort_column, $sort_order)->get();
         }
         $result = array(
             'err_code'      => '04',
@@ -219,6 +291,7 @@ class ProductController extends Controller
             'data'          => null
         );
         if ((int)$count > 0) {
+
             $result = array(
                 'err_code'      => '00',
                 'err_msg'          => 'ok',
@@ -235,9 +308,12 @@ class ProductController extends Controller
         $_tgl = date('YmdHi');
         $data = array();
         $id = (int)$request->id_product > 0 ? (int)$request->id_product : 0;
+
+        $favourite = (int)$request->favourite > 0 ? (int)$request->favourite : 0;
+        $priority_number_favourite = (int)$request->priority_number_favourite > 0 && (int)$favourite > 0 ? $request->priority_number_favourite : 0;
         $path_img = $request->file("img");
-		$kode_produk = $request->kode_produk;
-		if (!$this->isValidProductCode($id, $kode_produk)) {
+        $kode_produk = $request->kode_produk;
+        if (!$this->isValidProductCode($id, $kode_produk)) {
             $result = array(
                 'err_code'  => '06',
                 'err_msg'   => 'Product Code already exist',
@@ -245,6 +321,17 @@ class ProductController extends Controller
             );
             return response($result);
             return false;
+        }
+        if ($favourite > 0) {
+            if (!$this->isValidPriority($id, $priority_number_favourite)) {
+                $result = array(
+                    'err_code'  => '07',
+                    'err_msg'   => 'Number already exist',
+                    'data'      => null
+                );
+                return response($result);
+                return false;
+            }
         }
         $data = array(
             'id_category'   => (int)$request->id_category > 0 ? $request->id_category : '',
@@ -260,7 +347,8 @@ class ProductController extends Controller
             'qty'           => (int)$request->qty > 0 ? str_replace(',', '', $request->qty) : 0,
             // 'diskon_member' => !empty($request->diskon_member) ? $request->diskon_member : 0,
             'special_promo' => (int)$request->special_promo,
-            'favourite' 	=> (int)$request->favourite,
+            'favourite'     => $favourite,
+            'priority_number_favourite'     => (int)$priority_number_favourite,
             'start_date'    => !empty($request->start_date) ? date('Y-m-d H:i', strtotime($request->start_date)) : '',
             'end_date'      => !empty($request->end_date) ? date('Y-m-d H:i', strtotime($request->end_date)) : '',
         );
@@ -344,6 +432,7 @@ class ProductController extends Controller
         $tgl = date('Y-m-d H:i:s');
         $id_member = (int)$request->id_member > 0 ? Helper::last_login((int)$request->id_member) : 0;
         $id = (int)$request->id_product > 0 ? (int)$request->id_product : 0;
+        $id_member_share = (int)$request->id_member_share > 0 ? (int)$request->id_member_share : 0;
         $where = array('product.deleted_at' => null, 'id_product' => $id);
 
         $result = array(
@@ -387,15 +476,35 @@ class ProductController extends Controller
                     );
                 }
             }
-			$where = array();
-			$where = array('status_ulasan' => 2,'id_product'=>$id);
-			$cnt_ulasan = DB::table('transaksi_detail')->where($where)->count();
-			$data_ulasan = '';
-			if((int)$cnt_ulasan > 0){
-				$sort_column = 'tgl_ulasan';
-				$sort_order = 'DESC';
-				$data_ulasan = DB::table('transaksi_detail')->select('rating','ulasan','img_ulasan','tgl_ulasan')->where($where)->orderBy($sort_column, $sort_order)->get();			
-			}
+            $where = array();
+            $where = array('status_ulasan' => 2, 'id_product' => $id);
+            $cnt_ulasan = DB::table('transaksi_detail')->where($where)->count();
+            $data_ulasan = '';
+            if ((int)$cnt_ulasan > 0) {
+                $sort_column = 'tgl_ulasan';
+                $sort_order = 'DESC';
+                $data_ulasan = DB::table('transaksi_detail')->select('rating', 'ulasan', 'img_ulasan', 'tgl_ulasan')->where($where)->orderBy($sort_column, $sort_order)->get();
+            }
+            $sql_limit = "select id_lp,id_product, limit_pembelian, start_date::timestamp, end_date::timestamp from limit_pembelian 
+            where deleted_at is null and id_product = $id and ((start_date::timestamp <= '" . $tgl . "' and end_date::timestamp >= '" . $tgl . "') or (start_date::timestamp >= '" . $tgl . "' and end_date::timestamp <= '" . $tgl . "'))";
+            $limit_product = DB::select(DB::raw($sql_limit));
+            $jml_beli = 0;
+            $limit_beli = 0;
+            if ($id_member > 0 && (int)count($limit_product) > 0) {
+                $start_date = $limit_product[0]->start_date;
+                $end_date = $limit_product[0]->end_date;
+                $sql_beli = "select sum(jml) as jml_beli from transaksi left join transaksi_detail on transaksi_detail.id_trans = transaksi.id_transaksi where id_product = $id and id_member=$id_member and ((created_at::timestamp >= '" . $start_date . "' or created_at::timestamp <= '" . $end_date . "'))";
+
+                $beli_product = DB::select(DB::raw($sql_beli));
+                if ((int)count($beli_product) > 0) {
+                    $jml_beli = (int)$beli_product[0]->jml_beli;
+                }
+            }
+
+            if ((int)count($limit_product) > 0) {
+                $limit_beli = (int)$limit_product[0]->limit_pembelian;
+            }
+
             $photo = '';
             $photo = !empty($data->img) ? env('APP_URL') . '/api_cni/uploads/products/' . $data->img : '';
             unset($data->img);
@@ -414,9 +523,15 @@ class ProductController extends Controller
             $data->is_wishlist = (int)$is_wishlist > 0 ? $is_wishlist : 0;
 
             $data->img = $photo;
+            $data->jml_limit_beli = (int)$limit_beli > 0 ? $limit_beli : 9999999999;
+            $data->jml_beli = $jml_beli;
+            $data->is_limit_beli = (int)$jml_beli >= (int)$data->jml_limit_beli ? 1 : 0;
             $data->terjual = rand(1, 1000);
             $data->list_img = $list_img;
             $data->list_ulasan = $data_ulasan;
+            if ($id_member_share > 0) {
+                Helper::share_product((int)$id_member_share, $id_product, 1);
+            }
             $result = array(
                 'err_code'  => '00',
                 'err_msg'   => 'ok',
@@ -562,6 +677,7 @@ class ProductController extends Controller
         $id_product = (int)$request->id_product > 0 ? (int)$request->id_product : 0;
         $start_date = !empty($request->start_date) ? date('Y-m-d H:i', strtotime($request->start_date)) : '';
         $end_date = !empty($request->end_date) ? date('Y-m-d H:i', strtotime($request->end_date)) : '';
+        Log::info($request->all());
         $result = array();
         $sql = '';
         $sql = "select id_pricelist, start_date, end_date from pricelist where id_product=$id_product and deleted_at is null and (
@@ -574,6 +690,7 @@ class ProductController extends Controller
         }
         $pricelist_active = DB::select(DB::raw($sql));
         $date_duplicate = array();
+        DB::connection()->enableQueryLog();
         if (!empty($pricelist_active)) {
             foreach ($pricelist_active as $pa) {
                 $sd = date('d/m/Y H:i', strtotime($pa->start_date)) . ' - ' . date('d/m/Y H:i', strtotime($pa->end_date));
@@ -597,24 +714,24 @@ class ProductController extends Controller
             'id_product'   => (int)$id_product,
             'start_date'    => $start_date,
             'end_date'      => $end_date,
-            'pv'         => !empty($request->ppn_hm) ? str_replace(',', '', $request->pv) : 0,
-            'rv'         => !empty($request->ppn_hm) ? str_replace(',', '', $request->rv) : 0,
-            'harga_member' => !empty($request->ppn_hm) ? str_replace(',', '', $request->harga_member) : 0,
-            'harga_konsumen' => !empty($request->ppn_hm) ? str_replace(',', '', $request->harga_konsumen) : 0,
-            'hm_non_ppn' => !empty($request->ppn_hm) ? str_replace(',', '', $request->hm_non_ppn) : 0,
-            'hk_non_ppn' => !empty($request->hk_non_ppn) ? str_replace(',', '', $request->hk_non_ppn) : 0,
-            'ppn_hm'           => !empty($request->ppn_hm) ? str_replace(',', '', $request->ppn_hm) : 0,
-            'ppn_hk'           => !empty($request->ppn_hk) ? str_replace(',', '', $request->ppn_hk) : 0,
+            'pv'         => $request->has('pv') ? str_replace(',', '', $request->pv) : 0,
+            'rv'         => $request->has('rv') ? str_replace(',', '', $request->rv) : 0,
+            'harga_member' => $request->has('harga_member') ? str_replace(',', '', $request->harga_member) : 0,
+            'harga_konsumen' => $request->has('harga_konsumen') ? str_replace(',', '', $request->harga_konsumen) : 0,
+            'hm_non_ppn' => $request->has('hm_non_ppn') ? str_replace(',', '', $request->hm_non_ppn) : 0,
+            'hk_non_ppn' => $request->has('hk_non_ppn') ? str_replace(',', '', $request->hk_non_ppn) : 0,
+            'ppn_hm'           => $request->has('ppn_hm') ? str_replace(',', '', $request->ppn_hm) : 0,
+            'ppn_hk'           => $request->has('ppn_hk') ? str_replace(',', '', $request->ppn_hk) : 0,
             'status'    => 1
         );
         if ($id > 0) {
             $data += array("updated_at" => $tgl, "updated_by" => $request->id_operator);
             DB::table('pricelist')->where('id_pricelist', $id)->update($data);
         } else {
-            $data += array("created_at" => $tgl, "created_by" => $request->id_operator);
+            $data += array("created_at" => $tgl, "created_by" => $request->id_operator, 'is_sold_out' => 0);
             $id = DB::table('pricelist')->insertGetId($data, "id_pricelist");
         }
-
+        //Log::info(DB::getQueryLog());
         if ($id > 0) {
             $data += array('id_pricelist' => $id);
             $result = array(
@@ -649,7 +766,7 @@ class ProductController extends Controller
 
     public function get_pricelist(Request $request)
     {
-		$tgl = date('Y-m-d H:i:s');
+        $tgl = date('Y-m-d H:i:s');
         $per_page = (int)$request->per_page > 0 ? (int)$request->per_page : 0;
         $sort_column = !empty($request->sort_column) ? $request->sort_column : 'id_pricelist';
         $sort_order = !empty($request->sort_order) ? $request->sort_order : 'DESC';
@@ -663,7 +780,7 @@ class ProductController extends Controller
         $offset = ($page_number - 1) * $per_page;
         $_data = DB::table('pricelist')
             ->where($where)->offset($offset)->limit($per_page)->orderBy($sort_column, $sort_order)->get();
-		$data = DB::table('product')->select('product_name')->where($where)->first();
+        $data = DB::table('product')->select('product_name')->where($where)->first();
         $result = array(
             'err_code'      => '04',
             'err_msg'       => 'data not found',
@@ -677,8 +794,164 @@ class ProductController extends Controller
                 'err_code'      => '00',
                 'err_msg'          => 'ok',
                 'total_data'    => $count,
-				'id_product'    => $request->id_product,
-				'product_name'    => $data->product_name,
+                'id_product'    => $request->id_product,
+                'product_name'    => $data->product_name,
+                'data'          => $_data
+            );
+        }
+        return response($result);
+    }
+
+    function upd_active(Request $request)
+    {
+        $tgl = date('Y-m-d H:i:s');
+        $id = (int)$request->id_product > 0 ? (int)$request->id_product : 0;
+        $status = (int)$request->status > 0 ? (int)$request->status : 0;
+        $data = array("is_active" => $status, "is_active_by" => $request->id_operator, 'is_active_date' => $tgl);
+        DB::table('product')->where('id_product', $id)->update($data);
+        $result = array();
+        $result = array(
+            'err_code'  => '00',
+            'err_msg'   => 'ok',
+            'data'      => null
+        );
+        return response($result);
+    }
+
+    function upd_sold_out(Request $request)
+    {
+        $tgl = date('Y-m-d H:i:s');
+        $id = (int)$request->id_product > 0 ? (int)$request->id_product : 0;
+        $is_sold_out = (int)$request->is_sold_out > 0 ? (int)$request->is_sold_out : 0;
+        $data = array("is_sold_out" => $is_sold_out, "updated_by" => $request->id_operator, 'updated_at' => $tgl);
+        DB::table('product')->where('id_product', $id)->update($data);
+        $result = array();
+        $result = array(
+            'err_code'  => '00',
+            'err_msg'   => 'ok',
+            'data'      => null
+        );
+        return response($result);
+    }
+
+    function store_limit(Request $request)
+    {
+        $tgl = date('Y-m-d H:i:s');
+        $id = (int)$request->id_lp > 0 ? (int)$request->id_lp : 0;
+        $id_product = (int)$request->id_product > 0 ? (int)$request->id_product : 0;
+        $start_date = !empty($request->start_date) ? date('Y-m-d H:i', strtotime($request->start_date)) : '';
+        $end_date = !empty($request->end_date) ? date('Y-m-d H:i', strtotime($request->end_date)) : '';
+        $limit_pembelian = $request->has('limit_pembelian') ? str_replace(',', '', $request->limit_pembelian) : 0;
+        $result = array();
+        $sql = '';
+        $sql = "select id_lp, start_date, end_date from limit_pembelian where id_product=$id_product and deleted_at is null and (
+            (start_date::timestamp >= '" . $start_date . "' and start_date::timestamp <= '" . $end_date . "') or 
+            (end_date::timestamp >= '" . $start_date . "' and end_date::timestamp <= '" . $end_date . "') or
+            (start_date::timestamp <= '" . $start_date . "' and end_date::timestamp >= '" . $end_date . "')
+        )";
+        if ($id > 0) {
+            $sql .= " and id_lp != " . $id;
+        }
+        $pricelist_active = DB::select(DB::raw($sql));
+        $date_duplicate = array();
+        DB::connection()->enableQueryLog();
+        if (!empty($pricelist_active)) {
+            foreach ($pricelist_active as $pa) {
+                $sd = date('d/m/Y H:i', strtotime($pa->start_date)) . ' - ' . date('d/m/Y H:i', strtotime($pa->end_date));
+                array_push($date_duplicate, $sd);
+            }
+            $totalDuplicate = count($date_duplicate);
+            if ($totalDuplicate > 1) {
+                $date_duplicate = implode(', ', array_slice($date_duplicate, 0, $totalDuplicate - 1)) . ' dan ' . end($date_duplicate);
+            } else {
+                $date_duplicate = implode(', ', $date_duplicate);
+            }
+            $result = array(
+                'err_code'  => '05',
+                'err_msg'   => 'Tanggal bentrok',
+                'data'      => $date_duplicate
+            );
+            return response($result);
+            return false;
+        }
+        $data = array(
+            'id_product'   => (int)$id_product,
+            'start_date'    => $start_date,
+            'end_date'      => $end_date,
+            'limit_pembelian'         => (int)$limit_pembelian
+        );
+        if ($id > 0) {
+            $data += array("updated_at" => $tgl, "updated_by" => $request->id_operator);
+            DB::table('limit_pembelian')->where('id_lp', $id)->update($data);
+        } else {
+            $data += array("created_at" => $tgl, "created_by" => $request->id_operator);
+            $id = DB::table('limit_pembelian')->insertGetId($data, "id_lp");
+        }
+        Log::info(DB::getQueryLog());
+        if ($id > 0) {
+            $data += array('id_lp' => $id);
+            $result = array(
+                'err_code'  => '00',
+                'err_msg'   => 'ok',
+                'data'      => $data
+            );
+        } else {
+            $result = array(
+                'err_code'  => '05',
+                'err_msg'   => 'insert has problem',
+                'data'      => null
+            );
+        }
+        return response($result);
+    }
+
+    function del_lp(Request $request)
+    {
+        $tgl = date('Y-m-d H:i:s');
+        $id = (int)$request->id_lp > 0 ? (int)$request->id_lp : 0;
+        $data = array("deleted_at" => $tgl, "deleted_by" => $request->id_operator);
+        DB::table('limit_pembelian')->where('id_lp', $id)->update($data);
+        $result = array();
+        $result = array(
+            'err_code'  => '00',
+            'err_msg'   => 'ok',
+            'data'      => null
+        );
+        return response($result);
+    }
+
+    public function get_lp(Request $request)
+    {
+        $tgl = date('Y-m-d H:i:s');
+        $per_page = (int)$request->per_page > 0 ? (int)$request->per_page : 0;
+        $sort_column = !empty($request->sort_column) ? $request->sort_column : 'id_lp';
+        $sort_order = !empty($request->sort_order) ? $request->sort_order : 'DESC';
+        $page_number = (int)$request->page_number > 0 ? (int)$request->page_number : 1;
+        $where = array('deleted_at' => null, 'id_product' => (int)$request->id_product);
+        $count = 0;
+        $_data = array();
+        $data = array();
+        $count = DB::table('limit_pembelian')->where($where)->count();
+        $per_page = $per_page > 0 ? $per_page : $count;
+        $offset = ($page_number - 1) * $per_page;
+        $_data = DB::table('limit_pembelian')
+            ->where($where)->offset($offset)->limit($per_page)->orderBy($sort_column, $sort_order)->get();
+        $data = DB::table('product')->select('product_name')->where($where)->first();
+        $result = array(
+            'err_code'      => '04',
+            'err_msg'       => 'data not found',
+            'total_data'    => $count,
+            'id_product'    => $request->id_product,
+            'product_name'    => $data->product_name,
+            'data'          => null
+        );
+        if ($count > 0) {
+            $result = array(
+                'err_code'      => '00',
+                'err_msg'          => 'ok',
+                'total_data'    => $count,
+                'id_product'    => $request->id_product,
+                'product_name'    => $data->product_name,
                 'data'          => $_data
             );
         }
@@ -711,7 +984,7 @@ class ProductController extends Controller
             (product.start_date::timestamp >= '" . $tgl . "' and product.end_date::timestamp <= '" . $tgl . "')) and 
             ((pricelist.start_date::timestamp <= '" . $tgl . "' and pricelist.end_date::timestamp >= '" . $tgl . "') or 
             (pricelist.start_date::timestamp >= '" . $tgl . "' and pricelist.end_date::timestamp <= '" . $tgl . "')) 
-            and pricelist.id_product in (".$whereIn.")";
+            and pricelist.id_product in (" . $whereIn . ")";
         $pa = DB::select(DB::raw($sql));
         $result = array(
             'err_code'  => '05',
@@ -720,11 +993,24 @@ class ProductController extends Controller
         );
         return response($result);
     }
-	
-	function isValidProductCode($id_product, $kode_produk)
+
+    function isValidProductCode($id_product, $kode_produk)
     {
         $where = array();
         $where = array('deleted_at' => null, 'kode_produk' => $kode_produk);
+        $res_idproduct = DB::table('product')->select('id_product')->where($where)->first();
+        $res_id = !empty($res_idproduct) ? $res_idproduct->id_product : 0;
+        if ((int)$res_id && $res_idproduct->id_product != $id_product) {
+            return false;
+        } else {
+            return true;
+        }
+    }
+
+    function isValidPriority($id_product, $priority_number)
+    {
+        $where = array();
+        $where = array('deleted_at' => null, 'priority_number_favourite' => (int)$priority_number);
         $res_idproduct = DB::table('product')->select('id_product')->where($where)->first();
         $res_id = !empty($res_idproduct) ? $res_idproduct->id_product : 0;
         if ((int)$res_id && $res_idproduct->id_product != $id_product) {

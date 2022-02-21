@@ -28,8 +28,8 @@ class BannerController extends Controller
         $sort_order = !empty($request->sort_order) ? $request->sort_order : 'ASC';
         $page_number = (int)$request->page_number > 0 ? (int)$request->page_number : 1;
         $column_int = array("priority_number");
-        if(in_array($sort_column, $column_int)) $sort_column = $sort_column."::integer";
-        $sort_column = $sort_column." ".$sort_order;
+        if (in_array($sort_column, $column_int)) $sort_column = $sort_column . "::integer";
+        $sort_column = $sort_column . " " . $sort_order;
         $where = ['banner.deleted_at' => null];
         $count = 0;
         $_data = array();
@@ -87,11 +87,11 @@ class BannerController extends Controller
         $id = (int)$request->id_banner > 0 ? (int)$request->id_banner : 0;
         $path_img = $request->file("img");
         $data = array(
-            'type'  			=> (int)$request->type,
+            'type'              => (int)$request->type,
             'priority_number'   => (int)$request->priority_number
         );
-		if((int)$request->type == 1) $data +=array('id_product' => (int)$request->id_product );
-		if((int)$request->type == 2) $data +=array('url' => $request->url );
+        if ((int)$request->type == 1) $data += array('id_product' => (int)$request->id_product);
+        if ((int)$request->type == 2) $data += array('url' => $request->url);
         if (!$this->isValidPriority($id, $request->priority_number)) {
             $result = array(
                 'err_code'  => '06',

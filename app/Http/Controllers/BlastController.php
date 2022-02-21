@@ -74,12 +74,12 @@ class BlastController extends Controller
         $result = array();
 		$tgl = date('Y-m-d H:i:s');
         $data = array();
-        $id_product = $request->has('id_product') && (int)$request->id_product > 0 ? (int)$request->id_product : 0;
+        $id_product = $request->has('id_product') && (int)$request->id_product > 0 ? (int)$request->id_product : 0;		
 		$content = $request->has('content') ? $request->content : '';
 		$tujuan = $request->has('tujuan') ? $request->tujuan : 'Semua pengguna';
 		$data_product = DB::table('product')->select('product.product_name', 'product.kode_produk')->where(array('id_product'=>$id_product))->first();
-        $product_name = $data_product->product_name;
-        $kode_produk = $data_product->kode_produk;
+        $product_name = (int)$request->id_product > 0 ? $data_product->product_name : "Tidak ada";
+        $kode_produk = (int)$request->id_product > 0 ? $data_product->kode_produk : '';
 		$list_member = $request->id_member;
 		$whereIn = array();
 		$cnt_member = 0;
@@ -95,7 +95,7 @@ class BlastController extends Controller
 			}			
 		}		
 		$data_notif = array(
-			'id_product'	=> $id_product,
+			'id_product'	=> (int)$request->id_product > 0 ? $id_product : -1,
 			'product_name'	=> $product_name,
 			'kode_produk'	=> $kode_produk,
 			'content'		=> $content,
@@ -120,8 +120,9 @@ class BlastController extends Controller
 					'id'			=> $id_product,
 					'id_member'		=> $list_member[$i],
 					'content'		=> $content,
-					'type'			=> 2,
+					'type'			=> (int)$id_product == -1 ? 3 : 2,
 					'id_blast'		=> $id,
+					'unread'		=> 1,
 					'created_at'	=> $tgl,
 					'created_by'	=> (int)$request->id_operator
 				);	              
@@ -182,6 +183,17 @@ class BlastController extends Controller
         );
         return response($result);
     }
+	
+	function test_cron_cart(){
+		$res = Helper::notify_cart();
+		$result = array(
+            'err_code'  => '00',
+            'err_msg'   => 'ok',
+            'data'      => $res,
+            
+        );
+        return response($result);
+	}
 
     
 }

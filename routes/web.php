@@ -118,6 +118,13 @@ $router->post('/add_sm', 'MemberController@add_sm');
 $router->post('/get_cniid_sm', 'MemberController@get_cniid_sm');
 $router->post('/get_list_sm', 'MemberController@get_list_sm');
 $router->post('/list_follower_sm', 'MemberController@get_list_follower_sm');
+$router->post('/read_notif', 'MemberController@read_notif');
+$router->post('/add_cart', 'MemberController@add_cart');
+$router->post('/edit_qty_cart', 'MemberController@edit_qty_cart');
+$router->post('/del_cart', 'MemberController@del_cart');
+$router->post('/get_cart', 'MemberController@get_cart');
+$router->post('/generate_pass', 'MemberController@generate_pass');
+$router->get('/conf_pass', 'MemberController@conf_pass');
 
 $router->post('/category', 'CategoryController@index');
 $router->post('/simpan_category', 'CategoryController@store');
@@ -144,7 +151,12 @@ $router->get('/product', 'ProductController@getProduct');
 $router->post('/simpan_pricelist', 'ProductController@store_pricelist');
 $router->post('/del_pricelist', 'ProductController@del_pricelist');
 $router->post('/get_pricelist', 'ProductController@get_pricelist');
+$router->post('/set_stts_product', 'ProductController@upd_active');
+$router->post('/set_sold_out', 'ProductController@upd_sold_out');
 $router->post('/test_pricelist', 'ProductController@test_get_hrg');
+$router->post('/simpan_limit_beli', 'ProductController@store_limit');
+$router->post('/del_lp', 'ProductController@del_lp');
+$router->post('/get_lp', 'ProductController@get_lp');
 
 $router->post('/provinsi', 'ProvinsiController@index');
 $router->post('/simpan_provinsi', 'ProvinsiController@store');
@@ -171,11 +183,13 @@ $router->post('/get_ongkir_lion', 'MasterController@get_ongkir_lp');
 $router->post('/get_list_dc', 'MasterController@get_dc');
 $router->post('/cek_stok_dc', 'MasterController@cek_stok_dc');
 $router->post('/generate_resi', 'MasterController@generate_resi');
+$router->post('/generate_resi_lp', 'MasterController@generate_resi_lp');
 $router->get('/test_ongkir', 'MasterController@test_ongkir');
-$router->get('/test_ongkir_lion', 'MasterController@test_ongkir_lion');
+$router->post('/test_ongkir_lion', 'MasterController@test_ongkir_lion');
 $router->get('/test_send_order/{id_transaksi}', 'MasterController@test_send_order');
 
 $router->post('/submit_transaksi', 'TransaksiController@store');
+$router->post('/submit_transaksi_rne', 'TransaksiController@store_rne25');
 $router->post('/list_transaksi', 'TransaksiController@index');
 $router->post('/transaksi_detail', 'TransaksiController@transaksi_detail');
 $router->post('/upd_cnote', 'TransaksiController@set_cnote');
@@ -187,11 +201,21 @@ $router->post('/appr_rej_ulasan', 'TransaksiController@approve_rej_ulasan');
 $router->post('/list_ulasan', 'TransaksiController@list_ulasan');
 $router->post('/set_complete', 'TransaksiController@set_stts');
 $router->post('/set_hold', 'TransaksiController@set_hold');
+$router->get('/try', 'TransaksiController@upd_cniid_trans');
+$router->post('/test_jokul', 'TransaksiController@test_jokul');
+$router->post('/test_jokul_cc', 'TransaksiController@test_jokul_cc');
+$router->post('/notif_jokul', 'DokuController@notify_jokul');
+
+$router->post('/report', 'ReportController@index');
+$router->post('/export_header', 'ReportController@export_header');
+$router->post('/report_detail', 'ReportController@detail');
+$router->post('/export_detail', 'ReportController@export_detail');
 
 $router->post('/redirect', 'DokuController@redirect_va');
 $router->post('/notify', 'DokuController@notify');
 $router->post('/notify_qris', 'DokuController@notify_qris');
 $router->post('/generate_words', 'DokuController@generate_words');
+$router->post('/mitra_to_member', 'DokuController@mitra_to_member');
 // $router->get('/payment_suite/{id}', 'DokuController@payment_cc');
 
 $router->get('/refund_ewallet', 'CronController@index');
@@ -215,3 +239,19 @@ $router->post('/voucher_available', 'Vouchers@get_voucher_available');
 $router->post('/blast_notif', 'BlastController@index');
 $router->post('/simpan_blast', 'BlastController@store');
 $router->post('/blast_detail', 'BlastController@detail');
+$router->post('/test_cron_cart', 'BlastController@test_cron_cart');
+
+$router->post('/list_mitra', 'MitraController@index');
+$router->post('/register_mitra', 'MitraController@store');
+$router->post('/history_mitra', 'MitraController@history_mitra');
+$router->post('/detail_mitra', 'MitraController@detail');
+$router->post('/verify_token_mitra', 'MitraController@verify_token');
+$router->post('/resend_token_mitra', 'MitraController@resend_token');
+$router->post('/cancel_transaksi_mitra', 'MitraController@cancel_transaksi');
+
+$router->post('/list_simpatik', 'SimpatikController@index');
+$router->post('/add_simpatik', 'SimpatikController@store');
+$router->post('/history_simpatik', 'SimpatikController@history');
+$router->post('/detail_simpatik', 'SimpatikController@detail');
+$router->post('/upd_status', 'SimpatikController@upd_status');
+$router->post('/upl_bukti_transfer', 'SimpatikController@upl_bukti_transfer');

@@ -29,14 +29,14 @@ class NewsController extends Controller
         $page_number = (int)$request->page_number > 0 ? (int)$request->page_number : 1;
         $is_cms = (int)$request->is_cms > 0 ? 1 : 0;
         $column_int = array("id_news");
-        if(in_array($sort_column, $column_int)) $sort_column = $sort_column."::integer";
-        $sort_column = $sort_column." ".$sort_order;
+        if (in_array($sort_column, $column_int)) $sort_column = $sort_column . "::integer";
+        $sort_column = $sort_column . " " . $sort_order;
         $where = ['news.deleted_at' => null];
         $count = 0;
         $_data = array();
         $data = array();
         if (!empty($keyword)) {
-            $_data = DB::table('news')->select('news.*')                
+            $_data = DB::table('news')->select('news.*')
                 ->where($where)->whereRaw("LOWER(news.title) like '%" . $keyword . "%'")->get();
             $count = count($_data);
         } else {
@@ -44,7 +44,7 @@ class NewsController extends Controller
             //$count = count($ttl_data);
             $per_page = $per_page > 0 ? $per_page : $count;
             $offset = ($page_number - 1) * $per_page;
-            $_data = DB::table('news')->select('news.*')               
+            $_data = DB::table('news')->select('news.*')
                 ->where($where)->offset($offset)->limit($per_page)->orderByRaw($sort_column)->get();
         }
         $result = array(
@@ -67,7 +67,7 @@ class NewsController extends Controller
                 unset($d->deleted_at);
                 unset($d->img);
                 unset($d->path_file);
-				if($is_cms == 0) unset($d->filename);
+                if ($is_cms == 0) unset($d->filename);
                 $d->img = $path_img;
                 $d->path_file = $path_file;
                 $data[] = $d;
@@ -90,11 +90,11 @@ class NewsController extends Controller
         $data = array();
         $id = (int)$request->id_news > 0 ? (int)$request->id_news : 0;
         $path_file = $request->file("path_file");
-		$path_img = $request->file("img");
+        $path_img = $request->file("img");
         $data = array(
-            'title'  			=> $request->title            
+            'title'              => $request->title
         );
-		if (!empty($path_img)) {
+        if (!empty($path_img)) {
             $nama = str_replace(' ', '', $path_img->getClientOriginalName());
             if (strlen($nama) > 32) $nama = substr($nama, 0, 32);
             $nama = strtolower($nama);
@@ -128,22 +128,22 @@ class NewsController extends Controller
         }
         if (!empty($path_file)) {
             $nama = $path_file->getClientOriginalName();
-            
-			$data += array("filename" => $nama);
-			$nama = str_replace(' ', '_', $path_file->getClientOriginalName());
+
+            $data += array("filename" => $nama);
+            $nama = str_replace(' ', '_', $path_file->getClientOriginalName());
             //if (strlen($nama) > 32) $nama = substr($nama, 0, 32);
             //$nama = strtolower($nama);
-			
-            
+
+
             // $nama_file = Crypt::encryptString($nama_file);
             $fileSize = $path_file->getSize();
             $extension = $path_file->getClientOriginalExtension();
-			$nama = str_replace('.'.$extension, '', $nama);
-			$nama_file = $nama.'_'.$_tgl;
+            $nama = str_replace('.' . $extension, '', $nama);
+            $nama_file = $nama . '_' . $_tgl;
             $imageName = $nama_file . '.' . $extension;
-           
+
             $tujuan_upload = 'uploads/news';
-           
+
             $path_file->move($tujuan_upload, $imageName);
             $data += array("path_file" => $imageName);
         }
@@ -157,11 +157,11 @@ class NewsController extends Controller
 
         if ($id > 0) {
             $data += array('id_news' => $id);
-			$path_img = null;
+            $path_img = null;
             $path_img  = !empty($data['path_file']) ? env('APP_URL') . '/api_cni/uploads/news/' . $data['path_file'] : null;
-			unset($data['path_file']);
-			unset($data['filename']);
-			$data += array('path_file' => $path_img);            
+            unset($data['path_file']);
+            unset($data['filename']);
+            $data += array('path_file' => $path_img);
             $result = array(
                 'err_code'  => '00',
                 'err_msg'   => 'ok',
@@ -191,7 +191,4 @@ class NewsController extends Controller
         );
         return response($result);
     }
-	
-	 
-    
 }
