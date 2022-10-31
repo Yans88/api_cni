@@ -121,6 +121,7 @@ class Vouchers extends Controller
 		$keyword = !empty($request->keyword) ? strtoupper($request->keyword) : '';
 		$id_product_item = array();
 		$whereIn_id_product = array();
+		$data = [];
 		$_whereIn = '';
 		if (!empty($list_item)) {
 			for ($i = 0; $i < count($list_item); $i++) {
@@ -140,7 +141,7 @@ class Vouchers extends Controller
 		}
 		$_sql = '';
 		if ($tipe_member == 1) {
-			$_sql = "select id_voucher from vouchers 
+			$_sql = "select id_voucher from vouchers
             where member=1 and new_konsumen = 0 and deleted_at is null and vouchers.is_publish = 1 and vouchers.start_date::timestamp <= '" . $tgl . "' and vouchers.end_date::timestamp >= '" . $tgl . "'";
 		}
 		$list_trans = array();
@@ -156,7 +157,7 @@ class Vouchers extends Controller
 
 		$voucher_tipe_member = array();
 		if (!empty($_sql)) $voucher_tipe_member = DB::select(DB::raw($_sql));
-		$sql = "select * from vouchers 
+		$sql = "select * from vouchers
             where vouchers.deleted_at is null and vouchers.is_publish = 1 and vouchers.start_date::timestamp <= '" . $tgl . "' and vouchers.end_date::timestamp >= '" . $tgl . "'";
 
 		$whereIn = '';
@@ -193,6 +194,7 @@ class Vouchers extends Controller
 			'data'          => null
 		);
 		if (!empty($list_vouchers)) {
+            $data = [];
 			$data_produk = DB::table('product')->select('product.product_name', 'id_product', 'berat')->get();
 			$_dp = array();
 			$_brt = array();
@@ -263,7 +265,7 @@ class Vouchers extends Controller
 			$result = array(
 				'err_code'      => '00',
 				'err_msg'       => 'ok',
-				'total_data'    => count($list_vouchers),
+				'total_data'    => count($data),
 				'data'          => $data
 			);
 		}
@@ -292,18 +294,18 @@ class Vouchers extends Controller
 		$tipe_member = isset($member) ? (int)$member->type : 0;
 		$_sql = '';
 		if ($tipe_member == 1) {
-			$_sql = "select id_voucher from vouchers 
-            where member=1 and deleted_at is null and vouchers.is_publish = 1 and vouchers.start_date::timestamp <= '" . $tgl . "' and vouchers.end_date::timestamp >= '" . $tgl . "'";
+			$_sql = "select id_voucher from vouchers
+            where member=1 and deleted_at is null and vouchers.is_publish = 1 and vouchers.is_show = 1 and vouchers.start_date::timestamp <= '" . $tgl . "' and vouchers.end_date::timestamp >= '" . $tgl . "'";
 		}
 		if ($tipe_member == 2) {
-			$_sql = "select id_voucher from vouchers 
-            where konsumen=1 and deleted_at is null and vouchers.is_publish = 1 and vouchers.start_date::timestamp <= '" . $tgl . "' and vouchers.end_date::timestamp >= '" . $tgl . "'";
+			$_sql = "select id_voucher from vouchers
+            where konsumen=1 and deleted_at is null and vouchers.is_publish = 1 and vouchers.is_show = 1 and vouchers.start_date::timestamp <= '" . $tgl . "' and vouchers.end_date::timestamp >= '" . $tgl . "'";
 		}
 
 		$voucher_tipe_member = array();
 		if (!empty($_sql)) $voucher_tipe_member = DB::select(DB::raw($_sql));
-		$sql = "select * from vouchers 
-            where vouchers.deleted_at is null and vouchers.is_publish = 1 and vouchers.start_date::timestamp <= '" . $tgl . "' and vouchers.end_date::timestamp >= '" . $tgl . "'";
+		$sql = "select * from vouchers
+            where vouchers.deleted_at is null and vouchers.is_publish = 1 and vouchers.is_show = 1 and vouchers.start_date::timestamp <= '" . $tgl . "' and vouchers.end_date::timestamp >= '" . $tgl . "'";
 
 		$whereIn = '';
 		$whereNotIn = '';
@@ -352,7 +354,7 @@ class Vouchers extends Controller
 				$sisa = 0;
 				$is_limit = (int)$pa->is_limited;
 				$sisa = $is_limit > 0 ? (int)$pa->sisa : 20000;
-				if (($pa->deleted_at == null || empty($pa->deleted_at)) && (int)$pa->is_publish == 1) {
+				if (($pa->deleted_at == null || empty($pa->deleted_at)) && (int)$pa->is_publish == 1 && (int)$pa->is_show == 1) {
 					if (!in_array($pa->id_voucher, $voucher_used) && (int)$sisa > 0) {
 						$path_img  = !empty($pa->img) ? env('APP_URL') . '/api_cni/uploads/vouchers/' . $pa->img : null;
 						$is_available = 1;
@@ -384,7 +386,7 @@ class Vouchers extends Controller
 			$result = array(
 				'err_code'      => '00',
 				'err_msg'       => 'ok',
-				'total_data'    => count($list_vouchers),
+				'total_data'    => count($data),
 				'data'          => $data
 			);
 		}

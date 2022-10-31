@@ -72,6 +72,15 @@ class ProductController extends Controller
                     $is_grace_periode = 16 - (int)$diff->format("%R%a");
                 }
             }
+			if ($type == 3) {
+                $end_date = date('Y-m-d', strtotime($data_member->end_member));
+                if ($tgll > $end_date) {
+                    $date1 = date_create($end_date);
+                    $date2 = date_create($tgll);
+                    $diff = date_diff($date1, $date2);
+                    $is_grace_periode = 16 - (int)$diff->format("%R%a");
+                }
+            }
             if ($type == 1) {
                 $end_date = date('Y-m-d', strtotime($data_member->end_member));
                 $last_month_member_date = date('Y-m-d', strtotime("-1 months", strtotime($end_date)));
@@ -99,8 +108,8 @@ class ProductController extends Controller
         $query = '';
         $_pricelist = array();
         if ($end_price > 0 || $start_price > 0) {
-            if ($type >= 2) $query .= " and pricelist.harga_konsumen::numeric >= '" . $start_price . "' and pricelist.harga_konsumen::numeric <= '" . $end_price . "'";
-            if ($type == 1) $query .= " and pricelist.harga_member::numeric >= '" . $start_price . "' and pricelist.harga_member::numeric <= '" . $end_price . "'";
+            if ($type == 2) $query .= " and pricelist.harga_konsumen::numeric >= '" . $start_price . "' and pricelist.harga_konsumen::numeric <= '" . $end_price . "'";
+            if ($type == 1 || $type == 3) $query .= " and pricelist.harga_member::numeric >= '" . $start_price . "' and pricelist.harga_member::numeric <= '" . $end_price . "'";
         }
         if ((int)$last_month_member == 0 && (int)$is_grace_periode <= 0) {
             $query .= " and ABS(product.id_product) > 1";
@@ -155,19 +164,19 @@ class ProductController extends Controller
             if (!empty($keyword)) {
                 $_data = DB::table('product')->select('product.*', 'category_name')
                     ->whereIn('id_product', $whereIn);
-                if ($is_cms <= 0) $_data = $_data->where('product.qty', '>', 0);
+                if ($is_cms <= 0) $_data = $_data->where('product.qty', '>', 0)->whereNotIn('id_product', [64,65,66]);
                 $_data = $_data->leftJoin('category', 'category.id_category', '=', 'product.id_category')
                     ->where($where)->whereRaw("(LOWER(product.product_name) like '%" . $keyword . "%' or LOWER(product.kode_produk) like '%" . $keyword . "%')")->get();
                 $count = count($_data);
             } else {
                 $count = DB::table('product')->where($where);
-                if ($is_cms <= 0) $_data = $count->where('product.qty', '>', 0);
+                if ($is_cms <= 0) $_data = $count->where('product.qty', '>', 0)->whereNotIn('id_product', [64,65,66]);
                 $count = $count->whereIn('id_product', $whereIn)->count();
                 $per_page = $per_page > 0 ? $per_page : $count;
                 $offset = ($page_number - 1) * $per_page;
                 $_data = DB::table('product')->select('product.*', 'category_name')
                     ->whereIn('id_product', $whereIn);
-                if ($is_cms <= 0) $_data = $_data->where('product.qty', '>', 0);
+                if ($is_cms <= 0) $_data = $_data->where('product.qty', '>', 0)->whereNotIn('id_product', [64,65,66]);
                 $_data = $_data->leftJoin('category', 'category.id_category', '=', 'product.id_category')
                     ->where($where)->offset($offset)->limit($per_page)->orderByRaw($sort_column)->get();
             }
@@ -176,6 +185,7 @@ class ProductController extends Controller
         $result = array();
         $_limit = array();
         $_jml_beli = array();
+		$data_cart = [];
         $result = array(
             'err_code'      => '04',
             'err_msg'       => 'data not found',
@@ -187,7 +197,7 @@ class ProductController extends Controller
             $sql_limit = "select id_lp,id_product, limit_pembelian, start_date::timestamp, end_date::timestamp from limit_pembelian 
             where deleted_at is null and ((start_date::timestamp <= '" . $tgl . "' and end_date::timestamp >= '" . $tgl . "') or (start_date::timestamp >= '" . $tgl . "' and end_date::timestamp <= '" . $tgl . "'))";
             $limit_product = DB::select(DB::raw($sql_limit));
-            $jml_beli = 0;
+            $jml_beli = 0;            
             if (!empty($limit_product)) {
                 foreach ($limit_product as $lp) {
                     $_limit['id_lp'][$lp->id_product] = (int)$lp->id_lp;
@@ -205,7 +215,21 @@ class ProductController extends Controller
                         $_jml_beli[$lp->id_product] = (int)$lp->jml_beli;
                     }
                 }
+				
+				
             }
+			
+			if($id_member > 0){
+				$cnt_cart = DB::table('cart')->where('id_member', $id_member)->whereIn('id_product', $whereIn)->count();
+				if((int)$cnt_cart > 0){
+					$dt_cart = DB::table('cart')->select('id_product','qty')->where('id_member', $id_member)->whereIn('id_product', $whereIn)->get();
+					if(!empty($dt_cart)){
+						foreach($dt_cart as $dc){
+							$data_cart[$dc->id_product] = (int)$dc->qty;
+						}
+					}
+				}
+			}
 
             $where = array('id_member' => $id_member);
             $cnt_wishlist = DB::table('wishlist')->where($where)->count();
@@ -236,12 +260,13 @@ class ProductController extends Controller
                     $d->harga_konsumen = isset($_pricelist['harga_konsumen'][$d->id_product]) ? $_pricelist['harga_konsumen'][$d->id_product] : 0;
                     $d->pv = isset($_pricelist['pv'][$d->id_product]) ? $_pricelist['pv'][$d->id_product] : 0;
                     $d->rv = isset($_pricelist['rv'][$d->id_product]) ? $_pricelist['rv'][$d->id_product] : 0;
-                    $d->harga = $type == 1 ? $d->harga_member : $d->harga_konsumen;
+                    $d->harga = $type == 1 || $type == 3 ? $d->harga_member : $d->harga_konsumen;
                     $d->is_wishlist = $is_wishlist;
                     $d->img = $path_img;
                     $d->terjual = rand(1, 1000);
                     $d->jml_limit_beli = $limit_beli;
                     $d->jml_beli = $jml_beli;
+                    $d->qty_cart = isset($data_cart[$d->id_product]) ? (int)$data_cart[$d->id_product] : 0;					
                     $d->is_limit_beli = (int)$jml_beli >= (int)$limit_beli ? 1 : 0;
                     if ($is_cms > 0) $data[] = $d;
                     if ((int)$d->harga > 0 && $is_cms <= 0) $data[] = $d;
@@ -500,6 +525,14 @@ class ProductController extends Controller
                     $jml_beli = (int)$beli_product[0]->jml_beli;
                 }
             }
+			
+			$qty_cart = 0;
+			if((int)$id_member > 0){				
+				$where = array();  
+				$where = array('cart.id_member'=>$id_member, 'id_product'=>$id);
+				$dt_cart = DB::table('cart')->select('id_product','qty')->where($where)->first();
+				$qty_cart = isset($dt_cart) ? (int)$dt_cart->qty : 0;
+			}
 
             if ((int)count($limit_product) > 0) {
                 $limit_beli = (int)$limit_product[0]->limit_pembelian;
@@ -514,12 +547,13 @@ class ProductController extends Controller
             unset($data->created_at);
             unset($data->updated_at);
             unset($data->deleted_at);
+			
             $data->id_pricelist = isset($_pricelist['id_pricelist'][$data->id_product]) ? $_pricelist['id_pricelist'][$data->id_product] : 0;
             $data->harga_member = isset($_pricelist['harga_member'][$data->id_product]) ? $_pricelist['harga_member'][$data->id_product] : 0;
             $data->harga_konsumen = isset($_pricelist['harga_konsumen'][$data->id_product]) ? $_pricelist['harga_konsumen'][$data->id_product] : 0;
             $data->pv = isset($_pricelist['pv'][$data->id_product]) ? $_pricelist['pv'][$data->id_product] : 0;
             $data->rv = isset($_pricelist['rv'][$data->id_product]) ? $_pricelist['rv'][$data->id_product] : 0;
-            $data->harga = $type == 1 ? $data->harga_member : $data->harga_konsumen;
+            $data->harga = $type == 1 || $type == 3 ? $data->harga_member : $data->harga_konsumen;
             $data->is_wishlist = (int)$is_wishlist > 0 ? $is_wishlist : 0;
 
             $data->img = $photo;
@@ -527,6 +561,7 @@ class ProductController extends Controller
             $data->jml_beli = $jml_beli;
             $data->is_limit_beli = (int)$jml_beli >= (int)$data->jml_limit_beli ? 1 : 0;
             $data->terjual = rand(1, 1000);
+            $data->qty_cart = $qty_cart;
             $data->list_img = $list_img;
             $data->list_ulasan = $data_ulasan;
             if ($id_member_share > 0) {

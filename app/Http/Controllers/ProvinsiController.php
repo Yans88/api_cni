@@ -204,6 +204,7 @@ class ProvinsiController extends Controller
             'phone_wh' => $request->phone_wh,
             'email_wh' => $request->email_wh,
             'alamat_wh' => $request->alamat_wh,
+            'client_code' => $request->client_code,
             'id_prov' => (int)$request->id_prov,
             'is_jne'  => (int)$request->is_jne,
             'is_lp'   => (int)$request->is_lp

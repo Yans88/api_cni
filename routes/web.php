@@ -32,7 +32,7 @@ $router->get('/payment_suite/{id_transaksi}', function ($id_transaksi)  {
         )
             ->where($where)
             ->leftJoin('members', 'members.id_member', '=', 'transaksi.id_member')->first();
-		
+
 		$id_transaksi = $data->id_transaksi;
 		$expired_payment = date("Y-m-d H:i", strtotime($data->expired_payment));
         $ttl_price = $data->nominal_doku;
@@ -66,7 +66,7 @@ $router->get('/payment_suite/{id_transaksi}', function ($id_transaksi)  {
 				'id_transaksi'	=> $_id_transaksi
 			);
 		}
-		
+
     return view('greeting', $res);
 });
 
@@ -100,6 +100,7 @@ $router->post('/del_wishlist', 'MemberController@del_wishlist');
 $router->post('/get_mywishlist', 'MemberController@get_mywishlist');
 $router->post('/add_address', 'MemberController@add_address');
 $router->post('/get_address', 'MemberController@get_address');
+$router->post('/get_address_detail', 'MemberController@get_address_detail');
 $router->post('/del_address', 'MemberController@del_address');
 $router->post('/history_transaksi', 'MemberController@history_transaksi');
 $router->post('/set_fb', 'MemberController@akun_fb');
@@ -124,7 +125,13 @@ $router->post('/edit_qty_cart', 'MemberController@edit_qty_cart');
 $router->post('/del_cart', 'MemberController@del_cart');
 $router->post('/get_cart', 'MemberController@get_cart');
 $router->post('/generate_pass', 'MemberController@generate_pass');
+$router->get('/generate_pass_all', 'MemberController@generate_pass_all');
 $router->get('/conf_pass', 'MemberController@conf_pass');
+$router->get('/login_google', 'MemberController@login_google');
+$router->get('/login_fb', 'MemberController@login_fb');
+$router->post('/cek_cni_id', 'MemberController@cek_cniid');
+$router->post('/verify_cek_cni_id', 'MemberController@verify_cek_cniid');
+$router->post('/cancel_transaksi_member', 'MemberController@cancel_transaksi');
 
 $router->post('/category', 'CategoryController@index');
 $router->post('/simpan_category', 'CategoryController@store');
@@ -187,6 +194,7 @@ $router->post('/generate_resi_lp', 'MasterController@generate_resi_lp');
 $router->get('/test_ongkir', 'MasterController@test_ongkir');
 $router->post('/test_ongkir_lion', 'MasterController@test_ongkir_lion');
 $router->get('/test_send_order/{id_transaksi}', 'MasterController@test_send_order');
+$router->post('/store_setting', 'MasterController@store_setting');
 
 $router->post('/submit_transaksi', 'TransaksiController@store');
 $router->post('/submit_transaksi_rne', 'TransaksiController@store_rne25');
@@ -204,7 +212,6 @@ $router->post('/set_hold', 'TransaksiController@set_hold');
 $router->get('/try', 'TransaksiController@upd_cniid_trans');
 $router->post('/test_jokul', 'TransaksiController@test_jokul');
 $router->post('/test_jokul_cc', 'TransaksiController@test_jokul_cc');
-$router->post('/notif_jokul', 'DokuController@notify_jokul');
 
 $router->post('/report', 'ReportController@index');
 $router->post('/export_header', 'ReportController@export_header');
@@ -216,6 +223,7 @@ $router->post('/notify', 'DokuController@notify');
 $router->post('/notify_qris', 'DokuController@notify_qris');
 $router->post('/generate_words', 'DokuController@generate_words');
 $router->post('/mitra_to_member', 'DokuController@mitra_to_member');
+$router->post('/notif_jokul', 'DokuController@notify_jokul');
 // $router->get('/payment_suite/{id}', 'DokuController@payment_cc');
 
 $router->get('/refund_ewallet', 'CronController@index');
@@ -255,3 +263,5 @@ $router->post('/history_simpatik', 'SimpatikController@history');
 $router->post('/detail_simpatik', 'SimpatikController@detail');
 $router->post('/upd_status', 'SimpatikController@upd_status');
 $router->post('/upl_bukti_transfer', 'SimpatikController@upl_bukti_transfer');
+
+

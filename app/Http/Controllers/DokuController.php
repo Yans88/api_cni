@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Helpers\Helper;
 use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\Mail;
 
 class DokuController extends Controller
 {
@@ -147,23 +148,23 @@ class DokuController extends Controller
 				$tipe_member = (int)$dt_members->type;
 				$is_rne25 = (int)$dt_trans->is_rne25;
 				$is_regmitra = (int)$dt_trans->is_regmitra;
+				$is_upgrade = (int)$dt_trans->is_upgrade;
 
 				if ($ewallet > 0) {
 					$sub_ttl = $dt_trans->ttl_price;
 					$cni_id = isset($dt_members->cni_id) && (int)$dt_members->cni_id > 0 ? (int)$dt_members->cni_id : 0;
-					Helper::trans_ewallet("PAID_EWALLET", $cni_id, $sub_ttl, $ewallet, $id_transaksi, $input, "doku/notify", 1, '', 0, $id_member);
+					//Helper::trans_ewallet("PAID_EWALLET", $cni_id, $sub_ttl, $ewallet, $id_transaksi, $input, "doku/notify", 1, '', 0, $id_member);
 				}
 				$gen_cni_id = Helper::send_order_cni($id_transaksi, 'doku');
-				if ($ttl_price >= 1000000 && $tipe_member == 2 && $is_regmitra == 0) {
-					$is_upgrade = 1;
+				if ($is_upgrade == 1 && $is_regmitra == 0) {					
 					$start_member = date('Y-m-d');
 					$_end_member = date('Y-m-d', strtotime('+1 years'));
 					$end_member = date("Y-m-t", strtotime($_end_member));
 					$upd_member = array();
-					$upd_member = array(
-						'end_member'	=> $end_member,
+					$upd_member = array(						
 						'type'			=> 1,
 					);
+					if($tipe_member == 2) $upd_member += array('end_member'	=> $end_member);
 					if ((int)$is_rne25 == 0) {
 						$upd_member += array('start_member'	=> $start_member, 'cni_id' => $gen_cni_id);
 					}
@@ -204,8 +205,9 @@ class DokuController extends Controller
 					$dt_members = array(
 						'cni_id'		=> $cni_id,
 						'email'			=> $_data->email,
+						'nama'			=> $_data->nama,
 						'phone'			=> $_data->phone,
-						'cni_id_ref'	=> '',
+						'cni_id_ref'	=> $_data->upline_id,
 						'type'			=> $_data->type,
 						'status'		=> 1,
 						'verify_phone'	=> 1,
@@ -214,7 +216,7 @@ class DokuController extends Controller
 						'created_at'	=> $tgl,
 						'updated_at'	=> $tgl,
 					);
-					if ($type == 1 or $type == 2) {
+					if ($type == 1 or $type == 3) {
 						$start_member = date('Y-m-d');
 						$_end_member = date('Y-m-d', strtotime('+1 years'));
 						$end_member = date("Y-m-t", strtotime($_end_member));
@@ -281,43 +283,43 @@ class DokuController extends Controller
 		$where = array('transaksi.status' => 0, 'id_transaksi' => $id_transaksi);
 		// Log::info($where);
 		$is_upgrade = 0;
+		$dt_trans = '';
+		$dt_members = '';
 		$count = DB::table('transaksi')->where($where)->count();
 		if ((int)$count > 0) {
 			$data_s = serialize($input);
-			if ((int)$status == "S") {
-				$dt_trans = '';
-				$dt_members = '';
+			if ((int)$status == "S") {				
 				$dt_trans = DB::table('transaksi')->where($where)->first();
 				$ewallet = isset($dt_trans->ewallet) && (int)$dt_trans->ewallet > 0 ? (int)$dt_trans->ewallet : 0;
-				$ttl_price = isset($dt_trans->ttl_price) && (int)$dt_trans->ttl_price > 0 ? (int)$dt_trans->ttl_price : 0;
+				$ttl_price = isset($dt_trans->ttl_price) && (int)$dt_trans->ttl_price > 0 ? $dt_trans->ttl_price : 0;
 
 				$id_member = $dt_trans->id_member;
 				$dt_members = DB::table('members')->where(array("id_member" => $id_member))->first();
 				$tipe_member = (int)$dt_members->type;
 				$is_rne25 = (int)$dt_trans->is_rne25;
 				$is_regmitra = (int)$dt_trans->is_regmitra;
+				$is_upgrade = (int)$dt_trans->is_upgrade;
 				if ($ewallet > 0) {
 					$sub_ttl = $dt_trans->ttl_price;
 					$cni_id = isset($dt_members->cni_id) && (int)$dt_members->cni_id > 0 ? (int)$dt_members->cni_id : 0;
 					Helper::trans_ewallet("PAID_EWALLET", $cni_id, $sub_ttl, $ewallet, $id_transaksi, $input, "doku/notify", 1, '', 0, $id_member);
 				}
 				$gen_cni_id = Helper::send_order_cni($id_transaksi, 'doku', $is_regmitra);
-				if (($ttl_price >= 1000000 && $tipe_member == 2)) {
-					$is_upgrade = 1;
+				if (($ttl_price >= 1000000 && ($tipe_member == 2 or $tipe_member == 3)) && $is_upgrade == 1) {					
 					$start_member = date('Y-m-d');
 					$_end_member = date('Y-m-d', strtotime('+1 years'));
 					$end_member = date("Y-m-t", strtotime($_end_member));
 					$upd_member = array();
-					$upd_member = array(
-						'end_member'	=> $end_member,
+					$upd_member = array(						
 						'type'			=> 1,
 					);
+					if($tipe_member == 2) $upd_member += array('end_member'	=> $end_member);
 					if ((int)$is_rne25 == 0) {
 						$upd_member += array('start_member'	=> $start_member, 'cni_id' => $gen_cni_id);
 					}
 					DB::table('members')->where('id_member', $id_member)->update($upd_member);
 				}
-				if (($ttl_price >= 500000 && $ttl_price < 1000000) && $tipe_member == 2 && $is_regmitra == 0) {
+				if (($ttl_price >= 500000 && $ttl_price < 1000000) && $is_upgrade == 1 && $tipe_member == 2 && $is_regmitra == 0) {
 					$is_upgrade = 1;
 					$start_member = date('Y-m-d');
 					$_end_member = date('Y-m-d', strtotime('+1 years'));
@@ -367,6 +369,7 @@ class DokuController extends Controller
 					$dt_members = array(
 						'cni_id'		=> $cni_id,
 						'email'			=> $_data->email,
+						'nama'			=> $_data->nama,
 						'phone'			=> $_data->phone,
 						'cni_id_ref'	=> $_data->upline_id,
 						'type'			=> $_data->type,
@@ -377,7 +380,7 @@ class DokuController extends Controller
 						'created_at'	=> $tgl,
 						'updated_at'	=> $tgl,
 					);
-					if ($type == 1 or $type == 2) {
+					if ($type == 1 or $type == 3) {
 						$start_member = date('Y-m-d');
 						$_end_member = date('Y-m-d', strtotime('+1 years'));
 						$end_member = date("Y-m-t", strtotime($_end_member));
@@ -398,6 +401,7 @@ class DokuController extends Controller
 						'created_at'	=> $tgl,
 					);
 					DB::table('history_nomorn')->insertGetId($histori_nomorn, "id");
+					$dt_members = DB::table('members')->where(array("id_member" => $id_member))->first();
 				}
 				$data = array();
 				$data = array(
@@ -408,6 +412,71 @@ class DokuController extends Controller
 					'is_upgrade'	=> $is_upgrade
 				);
 				DB::table('transaksi')->where('id_transaksi', $id_transaksi)->update($data);
+				$payment_channel = isset($dt_trans) ? (int)$dt_trans->payment_channel : 0;
+				$payment = isset($dt_trans) ? (int)$dt_trans->payment : 0;
+				
+				$metode_pembayaran = 'https://mcni.cni.co.id/api_cni/uploads/default_payment.png';	
+				if($payment == 1) $metode_pembayaran = 'https://mcni.cni.co.id/api_cni/uploads/cc.png';
+				if($payment == 3) $metode_pembayaran = 'https://mcni.cni.co.id/api_cni/uploads/wallet.png';
+				if($payment == 2){
+					if ($payment_channel == 29) {					
+						$metode_pembayaran = 'https://mcni.cni.co.id/api_cni/uploads/29.png';
+					}
+					if ($payment_channel == 32) {
+						$metode_pembayaran = 'https://mcni.cni.co.id/api_cni/uploads/32.jpg';
+					}
+					if ($payment_channel == 33) {
+						$metode_pembayaran = 'https://mcni.cni.co.id/api_cni/uploads/33.jpg';
+					}
+					if ($payment_channel == 34) {
+						$metode_pembayaran = 'https://mcni.cni.co.id/api_cni/uploads/34.png';
+					}
+					if ($payment_channel == 36) {
+						$metode_pembayaran = 'https://mcni.cni.co.id/api_cni/uploads/36.png';
+					}
+				}
+				$setting = DB::table('setting')->get()->toArray();
+				$out = array();
+				if (!empty($setting)) {
+					foreach ($setting as $val) {
+						$out[$val->setting_key] = $val->setting_val;
+					}
+				}
+				$data_item = DB::table('transaksi_detail')->select('product_name', 'img', 'harga', 'jml')->where('id_trans', $id_transaksi)->get();
+				$nama = isset($dt_members) ? $dt_members->nama : '';
+				$email = isset($dt_members) ? $dt_members->email : '';				
+				$content_email_payment_complete = $out['content_email_payment_complete'];						
+				$content_email_payment_complete = str_replace('[#nama#]', $nama, $content_email_payment_complete);
+				$content_email_payment_complete = str_replace('[#no_transaksi#]', $id_transaksi, $content_email_payment_complete);						
+				$content_email_payment_complete = str_replace('[#ttl_bayar#]', number_format($ttl_price), $content_email_payment_complete);						
+				$content_email_payment_complete = str_replace('https://mcni.cni.co.id/api_cni/uploads/default_payment.png', $metode_pembayaran, $content_email_payment_complete);
+				$html = '<table cellpadding="0" cellspacing="0" border="0" width="80%" style="border-collapse:collapse;color:rgba(49,53,59,0.96);">
+                        <tbody>';
+				foreach ($data_item as $di) {
+					$html .= '<tr>';
+					$html .= '<td valign="top" width="64" style="padding:0 0 16px 0">
+					<img src="' . $di->img . '" width="64" style="border-radius:8px" class="CToWUd"></td>';
+					$html .= '<td valign="top" style="padding:0 0 16px 16px">
+								<div style="margin:0 0 4px;line-height:16px">' . $di->product_name . '</div>
+								<p style="font-weight:bold;margin:4px 0 0">' . number_format($di->jml) . ' x 
+									<span style="font-weight:bold;font-size:14px;color:#fa591d">Rp. ' . number_format($di->harga) . '</span>
+								</p>
+							</td>';
+					$html .= '</tr>';
+				}
+				$html .= '</tbody></table>';
+						
+				$data_email = array();
+				$content_email_payment_complete = str_replace('[#detail_pesanan#]', $html, $content_email_payment_complete);
+				Log::info($content_email_payment_complete);
+				$data_email['nama'] = $nama;
+				$data_email['email'] = $email;
+				$data_email['subject'] = 'Pembayaran mcni No Order '.$id_transaksi.' Telah diterima';
+				$data_email['content_email'] = $content_email_payment_complete;
+				$mail = Mail::send([], ['users' => $data_email], function ($message) use ($data_email) {
+					$message->to($data_email['email'], $data_email['nama'])->subject($data_email['subject'])->setBody($data_email['content_email'], 'text/html');
+				});
+				Log::info(serialize($mail));
 				echo 'Transaction #' . $id_transaksi . ': ' . $status;
 				echo '<script>console.log(\'RECEIVEOK\');</script>';
 			} else {
@@ -508,11 +577,13 @@ class DokuController extends Controller
 		$where = array('transaksi.status' => 0, 'id_transaksi' => $id_transaksi);
 		$count = DB::table('transaksi')->where($where)->count();
 		$is_upgrade = 0;
+		$dt_trans = '';
+		$dt_members = '';
+		DB::connection()->enableQueryLog();
 		if ((int)$count > 0) {
 			$data_s = serialize($input);
 			if ($status == "success") {
-				$dt_trans = '';
-				$dt_members = '';
+				
 				$dt_trans = DB::table('transaksi')->where($where)->first();
 				$ewallet = isset($dt_trans->ewallet) && (int)$dt_trans->ewallet > 0 ? (int)$dt_trans->ewallet : 0;
 				$ttl_price = isset($dt_trans->ttl_price) && (int)$dt_trans->ttl_price > 0 ? (int)$dt_trans->ttl_price : 0;
@@ -520,6 +591,7 @@ class DokuController extends Controller
 				$id_member = $dt_trans->id_member;
 				$is_rne25 = (int)$dt_trans->is_rne25;
 				$is_regmitra = (int)$dt_trans->is_regmitra;
+				$is_upgrade = (int)$dt_trans->is_upgrade;
 				if ($is_regmitra > 0) {
 					$dt_members = DB::table('reg_mitra')->where(array("id_transaksi" => $id_transaksi))->first();
 				} else {
@@ -532,23 +604,24 @@ class DokuController extends Controller
 					$cni_id = isset($dt_members->cni_id) && (int)$dt_members->cni_id > 0 ? (int)$dt_members->cni_id : 0;
 					Helper::trans_ewallet("PAID_EWALLET", $cni_id, $sub_ttl, $ewallet, $id_transaksi, $input, "doku/notify", 1, '', 0, $id_member);
 				}
-				$gen_cni_id = Helper::send_order_cni($id_transaksi, 'doku', $is_regmitra);
-				if ($ttl_price >= 1000000 && $tipe_member == 2 && $is_regmitra == 0) {
-					$is_upgrade = 1;
+				$gen_cni_id = Helper::send_order_cni($id_transaksi, 'doku', $is_regmitra, $is_upgrade);
+				if ($ttl_price >= 1000000 && $is_regmitra == 0 && ($tipe_member == 2 || $tipe_member == 3) && $is_upgrade == 1) {
+					
 					$start_member = date('Y-m-d');
 					$_end_member = date('Y-m-d', strtotime('+1 years'));
 					$end_member = date("Y-m-t", strtotime($_end_member));
 					$upd_member = array();
-					$upd_member = array(
-						'end_member'	=> $end_member,
+					$upd_member = array(						
 						'type'			=> 1,
 					);
+					if($tipe_member == 2) $upd_member += array('end_member'	=> $end_member);
 					if ((int)$is_rne25 == 0) {
 						$upd_member += array('start_member'	=> $start_member, 'cni_id' => $gen_cni_id);
 					}
 					DB::table('members')->where('id_member', $id_member)->update($upd_member);
+					Log::info(DB::getQueryLog());
 				}
-				if (($ttl_price >= 500000 && $ttl_price < 1000000) && $tipe_member == 2 && $is_regmitra == 0) {
+				if (($ttl_price >= 500000 && $ttl_price < 1000000) && $tipe_member == 2 && $is_regmitra == 0 && $is_upgrade == 1) {
 					$is_upgrade = 1;
 					$start_member = date('Y-m-d');
 					$_end_member = date('Y-m-d', strtotime('+1 years'));
@@ -587,7 +660,7 @@ class DokuController extends Controller
 					}
 				}
 				if ($is_regmitra == 1) {
-					DB::connection()->enableQueryLog();
+					
 					$id_reg_mitra = $id_member;
 					$cni_id = $gen_cni_id;
 					// $where = array('reg_mitra.id_reg_mitra' => $id_reg_mitra);
@@ -599,6 +672,7 @@ class DokuController extends Controller
 					$dt_members = array(
 						'cni_id'		=> $cni_id,
 						'email'			=> $_data->email,
+						'nama'			=> $_data->nama,
 						'phone'			=> $_data->phone,
 						'cni_id_ref'	=> $_data->upline_id,
 						'type'			=> $_data->type,
@@ -610,7 +684,7 @@ class DokuController extends Controller
 						'updated_at'	=> $tgl,
 					);
 					Log::info(serialize($dt_members));
-					if ($type == 1 or $type == 2) {
+					if ($type == 1 or $type == 3) {
 						$start_member = date('Y-m-d');
 						$_end_member = date('Y-m-d', strtotime('+1 years'));
 						$end_member = date("Y-m-t", strtotime($_end_member));
@@ -648,6 +722,67 @@ class DokuController extends Controller
 					'is_upgrade'	=> $is_upgrade
 				);
 				DB::table('transaksi')->where('id_transaksi', $id_transaksi)->update($data);
+				$payment_channel = isset($dt_trans) ? (int)$dt_trans->payment_channel : 0;
+				$payment = isset($dt_trans) ? (int)$dt_trans->payment : 0;
+				$metode_pembayaran = 'http://202.158.64.238/api_cni/uploads/29.png';
+				if ($payment_channel == 29) {					
+					$metode_pembayaran = 'http://202.158.64.238/api_cni/uploads/29.png';
+				}
+				if ($payment_channel == 32) {
+					$metode_pembayaran = 'http://202.158.64.238/api_cni/uploads/32.jpg';
+				}
+				if ($payment_channel == 33) {
+					$metode_pembayaran = 'http://202.158.64.238/api_cni/uploads/33.jpg';
+				}
+				if ($payment_channel == 34) {
+					$metode_pembayaran = 'http://202.158.64.238/api_cni/uploads/34.png';
+				}
+				if ($payment_channel == 36) {
+					$metode_pembayaran = 'http://202.158.64.238/api_cni/uploads/36.png';
+				}
+				$setting = DB::table('setting')->get()->toArray();
+				$out = array();
+				if (!empty($setting)) {
+					foreach ($setting as $val) {
+						$out[$val->setting_key] = $val->setting_val;
+					}
+				}
+				$data_item = DB::table('transaksi_detail')->select('product_name', 'img', 'harga', 'jml')->where('id_trans', $id_transaksi)->get();
+				$nama = isset($dt_members) ? $dt_members->nama : '';
+				$email = isset($dt_members) ? $dt_members->email : '';				
+				$content_email_payment_complete = $out['content_email_payment_complete'];						
+				$content_email_payment_complete = str_replace('[#nama#]', $nama, $content_email_payment_complete);
+				$content_email_payment_complete = str_replace('[#no_transaksi#]', $id_transaksi, $content_email_payment_complete);						
+				$content_email_payment_complete = str_replace('[#ttl_bayar#]', number_format($ttl_price), $content_email_payment_complete);						
+				$content_email_payment_complete = str_replace('http://202.158.64.238/api_cni/uploads/29.png', $metode_pembayaran, $content_email_payment_complete);
+				$html = '<table cellpadding="0" cellspacing="0" border="0" width="80%" style="border-collapse:collapse;color:rgba(49,53,59,0.96);">
+                        <tbody>';
+				foreach ($data_item as $di) {
+					$html .= '<tr>';
+					$html .= '<td valign="top" width="64" style="padding:0 0 16px 0">
+					<img src="' . $di->img . '" width="64" style="border-radius:8px" class="CToWUd"></td>';
+					$html .= '<td valign="top" style="padding:0 0 16px 16px">
+								<div style="margin:0 0 4px;line-height:16px">' . $di->product_name . '</div>
+								<p style="font-weight:bold;margin:4px 0 0">' . number_format($di->jml) . ' x 
+									<span style="font-weight:bold;font-size:14px;color:#fa591d">Rp. ' . number_format($di->harga) . '</span>
+								</p>
+							</td>';
+					$html .= '</tr>';
+				}
+				$html .= '</tbody></table>';
+						
+				$data_email = array();
+				$content_email_payment_complete = str_replace('[#detail_pesanan#]', $html, $content_email_payment_complete);
+				Log::info($content_email_payment_complete);			
+				$data_email['nama'] = $nama;
+				$data_email['email'] = $email;
+				$data_email['subject'] = 'Pembayaran mcni No Order '.$id_transaksi.' Telah diterima';
+				$data_email['content_email'] = $content_email_payment_complete;
+				$mail = Mail::send([], ['users' => $data_email], function ($message) use ($data_email) {
+					$message->to($data_email['email'], $data_email['nama'])->subject($data_email['subject'])->setBody($data_email['content_email'], 'text/html');
+				});
+				Log::info(serialize($data_email));
+				Log::info(serialize($mail));
 				echo 'Transaction #' . $id_transaksi . ': ' . $status;
 				echo '<script>console.log(\'RECEIVEOK\');</script>';
 			} else {

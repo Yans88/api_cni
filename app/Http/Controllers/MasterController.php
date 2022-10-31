@@ -6,6 +6,7 @@ use App\Helpers\Helper;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Crypt;
 
 class MasterController extends Controller
 {
@@ -344,7 +345,7 @@ class MasterController extends Controller
 		);
 		
 		$curl = curl_init();
-		$url = 'https://api-stg-middleware.lionparcel.com/v3/tariffv3?origin='.$_from_lp.'&destination='.$destination.'&weight='.$weight.'&commodity=GEN-GENERAL OTHERS - GENERAL LAINNYA';
+		$url = 'https://api-middleware.lionparcel.com/v3/tariffv3?origin='.$_from_lp.'&destination='.$destination.'&weight='.$weight.'&commodity=GEN-GENERAL OTHERS - GENERAL LAINNYA';
 	
 		$url = str_replace(" ", "%20", $url);
 		curl_setopt_array($curl, array(
@@ -429,6 +430,7 @@ class MasterController extends Controller
 	{
 		$tgl = date('Y-m-d H:i:s');
 		$id = (int)$request->id_address > 0 ? (int)$request->id_address : 0;
+		$searchdc = $request->searchdc ? $request->searchdc : '';
 		$list_item = json_decode($request->list_item);
 		//Log::info($list_item);
 		$where = array(
@@ -482,7 +484,8 @@ class MasterController extends Controller
 		$postfields = array(
 			"cityid"      => $id_city_cni, //"150"
 			"token"      => env('TOKEN_LIST_DC'),
-			"detailline" => $list_items
+			"detailline" => $list_items,
+			"searchdc" => $searchdc
 		);
 		$url = env('URL_LIST_DC');
 		$curl = curl_init();
@@ -764,7 +767,7 @@ class MasterController extends Controller
 				"username" 					=> env('JNE_USERNAME'),
 				"api_key" 					=> env('JNE_APIKEY'),
 				"OLSHOP_BRANCH"      		=> "CGK000",
-				"OLSHOP_CUST"      			=> 10950700,
+				"OLSHOP_CUST"      			=> 80532300,
 				"OLSHOP_ORDERID"    		=> 'CNI-' . $prefix . '' . $id_transaksi,
 				"OLSHOP_SHIPPER_NAME"    	=> "CNI",
 				"OLSHOP_SHIPPER_ADDR1"    	=> "-",
@@ -914,15 +917,16 @@ class MasterController extends Controller
 			$alamat_wh = isset($dt_wh) ? $dt_wh->alamat_wh : '';
 			$phone_wh = isset($dt_wh) ? $dt_wh->phone_wh : '';
 			$email_wh = isset($dt_wh) ? $dt_wh->email_wh : '';
+			$client_code = isset($dt_wh) && !empty($dt_wh->client_code) ? $dt_wh->client_code : env('CLIENT_CODE');
 			
 			$url = env('URL_ORDER_LP');
-			$CLIENT_CODE = env('CLIENT_CODE');
+			//$CLIENT_CODE = env('CLIENT_CODE');
 			
 			$xml = new \SimpleXMLElement('<ORDER_DETAILS/>');						
 			
 			$xml->addChild('ORDER_NO', 'MCNI-'.$id_transaksi);			
 			$xml_item = $xml->addChild('PACKAGE_DETAILS');
-			$xml_item->addChild('CLIENT_CODE', $CLIENT_CODE);
+			$xml_item->addChild('CLIENT_CODE', $client_code);
 			$xml_item->addChild('UserType', 'Corporate Customer');
 			$xml_item->addChild('EXTERNALNUMBER', 'MCO-'.$id_transaksi);
 			$xml_item->addChild('TRACKING_NO', '');
@@ -1004,6 +1008,126 @@ class MasterController extends Controller
 			);
 			return response($result);
 		}
+	}
+	
+	function store_setting(Request $request)
+	{
+		$_tgl = date('YmdHis');
+		$rancangan_bisnis = $request->file("rancangan_bisnis");
+		$panduan_bisnis = $request->file("panduan_bisnis");
+		$katalog_produk = $request->file("katalog_produk");
+		$info_belanja = $request->file("info_belanja");
+		$data = array();
+		if (!empty($rancangan_bisnis)) {
+            $nama = str_replace(' ', '_', $rancangan_bisnis->getClientOriginalName());
+            
+            $fileSize = $rancangan_bisnis->getSize();
+            $extension = $rancangan_bisnis->getClientOriginalExtension();
+            $imageName = 'rancangan_bisnis_'.$nama;
+            $tujuan_upload = 'uploads/info_bisnis';
+            $_extension = array('pdf');            
+            if (!in_array($extension, $_extension)) {
+                $result = array(
+                    'err_code'  => '07',
+                    'err_msg'   => 'file extension not valid',
+                    'data'      => null
+                );
+                return response($result);
+                return false;
+            }
+            $rancangan_bisnis->move($tujuan_upload, $imageName);            
+			$where = array();
+			$dt = array();
+			$where = array("setting_key" => "rancangan_bisnis");
+			$dt = ["setting_val" => env('APP_URL') . '/api_cni/uploads/info_bisnis/' . $imageName];
+			DB::table('setting')->where($where)->update($dt);
+			$data += array("rancangan_bisnis" => env('APP_URL') . '/api_cni/uploads/info_bisnis/' . $imageName);
+        }
+		
+		if (!empty($panduan_bisnis)) {
+            $nama = str_replace(' ', '_', $panduan_bisnis->getClientOriginalName());
+            
+            $fileSize = $panduan_bisnis->getSize();
+            $extension = $panduan_bisnis->getClientOriginalExtension();
+            $imageName = 'info_belanja_'.$nama;
+            $tujuan_upload = 'uploads/info_bisnis';
+            $_extension = array('pdf');            
+            if (!in_array($extension, $_extension)) {
+                $result = array(
+                    'err_code'  => '07',
+                    'err_msg'   => 'file extension not valid',
+                    'data'      => null
+                );
+                return response($result);
+                return false;
+            }
+            $panduan_bisnis->move($tujuan_upload, $imageName);            
+			$where = array();
+			$dt = array();
+			$where = array("setting_key" => "panduan_bisnis");
+			$dt = ["setting_val" => env('APP_URL') . '/api_cni/uploads/info_bisnis/' . $imageName];
+			DB::table('setting')->where($where)->update($dt);
+			$data += array("panduan_bisnis" => env('APP_URL') . '/api_cni/uploads/info_bisnis/' . $imageName);
+        }
+		
+		if (!empty($katalog_produk)) {
+            $nama = str_replace(' ', '_', $katalog_produk->getClientOriginalName());
+            
+            $fileSize = $katalog_produk->getSize();
+            $extension = $katalog_produk->getClientOriginalExtension();
+            $imageName = 'katalog_produk_'.$nama;
+            $tujuan_upload = 'uploads/info_bisnis';
+            $_extension = array('pdf');            
+            if (!in_array($extension, $_extension)) {
+                $result = array(
+                    'err_code'  => '07',
+                    'err_msg'   => 'file extension not valid',
+                    'data'      => null
+                );
+                return response($result);
+                return false;
+            }
+            $katalog_produk->move($tujuan_upload, $imageName);            
+			$where = array();
+			$dt = array();
+			$where = array("setting_key" => "katalog_produk");
+			$dt = ["setting_val" => env('APP_URL') . '/api_cni/uploads/info_bisnis/' . $imageName];
+			DB::table('setting')->where($where)->update($dt);
+			$data += array("katalog_produk" => env('APP_URL') . '/api_cni/uploads/info_bisnis/' . $imageName);
+        }
+		
+		if (!empty($info_belanja)) {
+            $nama = str_replace(' ', '_', $info_belanja->getClientOriginalName());
+            
+            $fileSize = $info_belanja->getSize();
+            $extension = $info_belanja->getClientOriginalExtension();
+            $imageName = 'info_belanja_'.$nama;
+            $tujuan_upload = 'uploads/info_bisnis';
+            $_extension = array('pdf');            
+            if (!in_array($extension, $_extension)) {
+                $result = array(
+                    'err_code'  => '07',
+                    'err_msg'   => 'file extension not valid',
+                    'data'      => null
+                );
+                return response($result);
+                return false;
+            }
+            $info_belanja->move($tujuan_upload, $imageName);            
+			$where = array();
+			$dt = array();
+			$where = array("setting_key" => "info_belanja");
+			$dt = ["setting_val" => env('APP_URL') . '/api_cni/uploads/info_bisnis/' . $imageName];
+			DB::table('setting')->where($where)->update($dt);
+			$data += array("info_belanja" => env('APP_URL') . '/api_cni/uploads/info_bisnis/' . $imageName);
+        }
+		
+		$result = array(
+			'err_code'  => '00',
+			'err_msg'   => 'ok',
+			'data'      => $data
+		);
+		return response($result);
 	}
 
 	function test_send_order(Request $request)
