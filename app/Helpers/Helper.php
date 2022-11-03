@@ -487,6 +487,7 @@ class Helper
             "provinsi_penerima" => $_data->provinsi_name,
             "jasa_pengirim" => $_data->logistic_name . '-' . $_data->service_code,
             "notelpakun" => $_data->phone_member,
+            "ongkir_origin" => (int)$_data->ongkir_origin > 0 ? $_data->ongkir_origin : 0,
         );
 
         $curl = curl_init();

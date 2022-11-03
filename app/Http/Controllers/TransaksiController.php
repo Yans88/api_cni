@@ -390,32 +390,32 @@ class TransaksiController extends Controller
         if ($payment == 2) {
             $payment_channel_va[29] = array(
                 'kode' => 29,
-                'payment_name' => 'BCA VA',
+                'payment_name' => 'Bank BCA Virtual Account',
                 'prefix' => 39355000
             );
             $payment_channel_va[32] = array(
                 'kode' => 32,
-                'payment_name' => 'CIMB VA',
+                'payment_name' => 'Bank CIMB Virtual Account',
                 'prefix' => 51491125
             );
             $payment_channel_va[33] = array(
                 'kode' => 33,
-                'payment_name' => 'Danamon VA',
+                'payment_name' => 'Bank Danamon Virtual Account',
                 'prefix' => 89220088
             );
             $payment_channel_va[34] = array(
                 'kode' => 34,
-                'payment_name' => 'BRI VA',
+                'payment_name' => 'Bank BRI Virtual Account',
                 'prefix' => 45664000
             );
             $payment_channel_va[36] = array(
                 'kode' => 36,
-                'payment_name' => 'PERMATA VA',
+                'payment_name' => 'Bank PERMATA Virtual Account',
                 'prefix' => 88560936
             );
             $payment_channel_va[37] = array(
                 'kode' => 37,
-                'payment_name' => 'MANDIRI VA',
+                'payment_name' => 'Bank MANDIRI Virtual Account',
                 'prefix' => ''
             );
 

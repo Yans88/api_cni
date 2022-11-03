@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -221,10 +220,11 @@ class Vouchers extends Controller
 							$is_available_produk_utama = 1;
 							$is_available_min_pembelian = $total_belanjaan >= $pa->min_pembelian ? 1 : 0;
 						}
-						$_lp = '';
+						$_lp = [];
 						if ($pa->produk_tertentu > 0) {
-							$_lp = isset($lp[$pa->id_voucher]) ? $lp[$pa->id_voucher] : '';
+							$_lp = isset($lp[$pa->id_voucher]) ? $lp[$pa->id_voucher] : [];
 							$is_available_produk_tertentu = !empty($_lp) ? 1 : 0;
+
 						}
 						$produk_utama_name = '';
 						$produk_bonus_name = '';
@@ -245,6 +245,9 @@ class Vouchers extends Controller
 						if ($platform == 1) $is_available_platform = (int)$pa->mobile == 1 ? 1 : 0;
 						if ($platform == 2) $is_available_platform = (int)$pa->website == 1 ? 1 : 0;
 						$is_available = (int)$is_available_min_pembelian > 0 && (int)$is_available_platform > 0 && (int)$is_available_produk_utama > 0 ? 1 : 0;
+                        if ($pa->produk_tertentu > 0) {
+                            $is_available = $is_available > 0 && (int)count($_lp) > 0 ? 1  : 0;
+                        }
 						unset($pa->created_by);
 						unset($pa->updated_by);
 						unset($pa->deleted_by);
@@ -257,7 +260,7 @@ class Vouchers extends Controller
 						$pa->produk_bonus_name = $produk_bonus_name;
 						$pa->berat = (int)$berat;
 						$pa->img = $path_img;
-						$pa->list_id_product = $_lp;
+						$pa->list_id_product = count($_lp) > 0 ? $_lp : '';
 						$data[] = $pa;
 					}
 				}
