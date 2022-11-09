@@ -1348,12 +1348,11 @@ class TransaksiController extends Controller
 
     function store_rne25(Request $request)
     {
-
-        $tgl = date('Y-m-d H:i:s');
         $url_path_doku = env('URL_JOKUL');
-
         $clientId = env('CLIENT_ID_JOKUL');
         $secretKey = env('SECRET_KEY_JOKUL');
+        $tgl = date('Y-m-d H:i:s');
+        $_tgl = date('d-m-Y H:i');
         $result = array();
         $id_member = (int)$request->id_member > 0 ? Helper::last_login((int)$request->id_member) : 0;
         $payment = (int)$request->payment > 0 ? (int)$request->payment : 0;
@@ -1446,28 +1445,33 @@ class TransaksiController extends Controller
         if ($payment == 2) {
             $payment_channel_va[29] = array(
                 'kode' => 29,
-                'payment_name' => 'BCA VA',
+                'payment_name' => 'Bank BCA Virtual Account',
                 'prefix' => 39355000
             );
             $payment_channel_va[32] = array(
                 'kode' => 32,
-                'payment_name' => 'CIMB VA',
+                'payment_name' => 'Bank CIMB Virtual Account',
                 'prefix' => 51491125
             );
             $payment_channel_va[33] = array(
                 'kode' => 33,
-                'payment_name' => 'Danamon VA',
+                'payment_name' => 'Bank Danamon Virtual Account',
                 'prefix' => 89220088
             );
             $payment_channel_va[34] = array(
                 'kode' => 34,
-                'payment_name' => 'BRI VA',
+                'payment_name' => 'Bank BRI Virtual Account',
                 'prefix' => 45664000
             );
             $payment_channel_va[36] = array(
                 'kode' => 36,
-                'payment_name' => 'PERMATA VA',
+                'payment_name' => 'Bank PERMATA Virtual Account',
                 'prefix' => 88560936
+            );
+            $payment_channel_va[37] = array(
+                'kode' => 37,
+                'payment_name' => 'Bank MANDIRI Virtual Account',
+                'prefix' => ''
             );
 
             $_phone = !empty($phone_member) ? str_replace('62', '', $phone_member) : mt_rand(100000, 999999);
@@ -1596,15 +1600,18 @@ class TransaksiController extends Controller
                     $data_ewallet = Helper::trans_ewallet($action, $cni_id, $sub_ttl_ongkir_pot_voucher, $ewallet, $id_transaksi, $request->all(), "submit_transaksi", 1, $ket, 1, $id_member);
                 }
                 if (isset($data_ewallet['result']) && $data_ewallet['result'] != "Y") {
+                    DB::rollback();
                     DB::table('transaksi')->where('id_transaksi', $id_transaksi)->delete();
-                    DB::table('transaksi_detail')->where('id_trans', $id_transaksi)->delete();
                     return response($data_ewallet);
                     return false;
                 }
             }
 
             if ($payment == 1) {
+                $requestId = $id_transaksi;
+                $invoice_number = $requestId;
                 $amount = $nominal_doku;
+                $metode_pembayaran = 'https://mcni.cni.co.id/api_cni/uploads/cc.png';
                 $targetPath = "/credit-card/v1/payment-page";
                 $requestBody = array(
                     'order' => array(
@@ -1621,8 +1628,115 @@ class TransaksiController extends Controller
                         'email' => $email,
                     ),
                 );
-                $requestId = $id_transaksi;
                 $dateTimeFinal = gmdate("Y-m-d\TH:i:s\Z", strtotime('- 0 minutes'));
+                $digestValue = base64_encode(hash('sha256', json_encode($requestBody), true));
+                $componentSignature = "Client-Id:" . $clientId . "\n" .
+                    "Request-Id:" . $requestId . "\n" .
+                    "Request-Timestamp:" . $dateTimeFinal . "\n" .
+                    "Request-Target:" . $targetPath . "\n" .
+                    "Digest:" . $digestValue;
+                $signature = base64_encode(hash_hmac('sha256', $componentSignature, $secretKey, true));
+                $headers = array(
+                    'Content-Type: application/json',
+                    'Client-Id:' . $clientId,
+                    'Request-Id:' . $requestId,
+                    'Request-Timestamp:' . $dateTimeFinal,
+                    'Signature:HMACSHA256=' . $signature
+                );
+                $ch = curl_init();
+                curl_setopt($ch, CURLOPT_URL, $url_path_doku . $targetPath);
+                curl_setopt($ch, CURLOPT_POST, true);
+                curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($requestBody));
+
+                $result = curl_exec($ch);
+                if ($result === FALSE) {
+                    die('Send Error: ' . curl_error($ch));
+                }
+
+
+                curl_close($ch);
+
+                $data_result = json_decode($result);
+                $dt = isset($data_result->credit_card_payment_page) ? $data_result->credit_card_payment_page : '';
+                $key_payment = !empty($dt) ? $dt->url : '';
+            }
+
+            if ($payment == 4) {
+                $length_id = strlen($id_transaksi);
+                $length = 15 - (int)$length_id;
+                $randomletter = substr(str_shuffle("cniCNIcniCNIcni"), 0, $length);
+                $base64 = base64_encode($randomletter . "" . $id_transaksi);
+                $data_qris = Helper::generate_qris($base64, $nominal_doku);
+                $key_payment = $data_qris['qrCode'];
+                $key_payment = 'http://chart.googleapis.com/chart?chs=300x300&cht=qr&chld=Q|3&chl=' . $key_payment;
+            }
+
+            if ($payment == 2) {
+                $dateTimeFinal = gmdate("Y-m-d\TH:i:s\Z", strtotime('- 0 minutes'));
+                $payment_channel = (int)$request->payment_channel > 0 ? (int)$request->payment_channel : 0;
+                $requestId = $id_transaksi;
+                $invoice_number = $requestId;
+                $targetPath = '';
+                if ($payment_channel == 29) {
+                    $targetPath = "/bca-virtual-account/v2/merchant-payment-code";
+                }
+                if ($payment_channel == 32) {
+                    $targetPath = "/cimb-virtual-account/v2/payment-code";
+                }
+                if ($payment_channel == 33) {
+                    $targetPath = "/danamon-virtual-account/v2/payment-code";
+                }
+                if ($payment_channel == 34) {
+                    $targetPath = "/bri-virtual-account/v2/payment-code";
+                }
+                if ($payment_channel == 36) {
+                    $targetPath = "/permata-virtual-account/v2/payment-code";
+                }
+                if ($payment_channel == 37) {
+                    $targetPath = "/mandiri-virtual-account/v2/payment-code";
+                }
+                $amount = $nominal_doku;
+                $requestBody = array(
+                    'order' => array(
+                        'amount' => $amount,
+                        'invoice_number' => $invoice_number,
+                    ),
+                    'virtual_account_info' => array(
+                        'expired_time' => 180,
+                        'reusable_status' => false,
+
+                    ),
+                    'customer' => array(
+                        'name' => !empty($nama) ? $nama : 'CNI',
+                        'email' => $email,
+                    ),
+                );
+                if ($payment_channel == 29) {
+                    // $prefix = 39355000;
+                    // $_phone = !empty($phone_member) ? str_replace('62', '', $phone_member) : mt_rand(100000, 999999);
+                    // $no_va = $_phone . '' . $id_member . '' . $id_transaksi;
+                    // $no_va = substr($no_va, -8);
+                    // $no_va = $prefix . '' . $no_va;
+                    $no_va = '3830038300' . $id_transaksi;
+                    $requestBody = array(
+                        'order' => array(
+                            'amount' => $amount,
+                            'invoice_number' => $invoice_number,
+                        ),
+                        'virtual_account_info' => array(
+                            'virtual_account_number' => $no_va,
+                            'expired_time' => 180,
+                            'reusable_status' => false,
+
+                        ),
+                        'customer' => array(
+                            'name' => !empty($nama) ? $nama : 'CNI',
+                            'email' => $email,
+                        ),
+                    );
+                }
                 $digestValue = base64_encode(hash('sha256', json_encode($requestBody), true));
                 $componentSignature = "Client-Id:" . $clientId . "\n" .
                     "Request-Id:" . $requestId . "\n" .
@@ -1652,92 +1766,14 @@ class TransaksiController extends Controller
                 curl_close($ch);
 
                 $data_result = json_decode($result);
-                $dt = isset($data_result->credit_card_payment_page) ? $data_result->credit_card_payment_page : '';
-                $key_payment = !empty($dt) ? $dt->url : '';
-            }
-
-            if ($payment == 4) {
-                $length_id = strlen($id_transaksi);
-                $length = 15 - (int)$length_id;
-                $randomletter = substr(str_shuffle("cniCNIcniCNIcni"), 0, $length);
-                $base64 = base64_encode($randomletter . "" . $id_transaksi);
-                $data_qris = Helper::generate_qris($base64, $nominal_doku);
-                $key_payment = $data_qris['qrCode'];
-                $key_payment = 'http://chart.googleapis.com/chart?chs=300x300&cht=qr&chld=Q|3&chl=' . $key_payment;
-            }
-            if ($payment == 2) {
-
-                $dateTimeFinal = gmdate("Y-m-d\TH:i:s\Z", strtotime('- 0 minutes'));
-                $payment_channel = (int)$request->payment_channel > 0 ? (int)$request->payment_channel : 0;
-                $requestId = $id_transaksi;
-                $invoice_number = $requestId;
-                $targetPath = '';
-                if ($payment_channel == 29) {
-                    $targetPath = "/bca-virtual-account/v2/merchant-payment-code";
-                }
-                if ($payment_channel == 32) {
-                    $targetPath = "/cimb-virtual-account/v2/payment-code";
-                }
-                if ($payment_channel == 34) {
-                    $targetPath = "/bri-virtual-account/v2/payment-code";
-                }
-                if ($payment_channel == 36) {
-                    $targetPath = "/permata-virtual-account/v2/payment-code";
-                }
-                $amount = $nominal_doku;
-                $requestBody = array(
-                    'order' => array(
-                        'amount' => $amount,
-                        'invoice_number' => $invoice_number,
-                    ),
-                    'virtual_account_info' => array(
-                        'expired_time' => 180,
-                        'reusable_status' => false,
-
-                    ),
-                    'customer' => array(
-                        'name' => $nama,
-                        'email' => $email,
-                    ),
-                );
-                $digestValue = base64_encode(hash('sha256', json_encode($requestBody), true));
-                $componentSignature = "Client-Id:" . $clientId . "\n" .
-                    "Request-Id:" . $requestId . "\n" .
-                    "Request-Timestamp:" . $dateTimeFinal . "\n" .
-                    "Request-Target:" . $targetPath . "\n" .
-                    "Digest:" . $digestValue;
-                $signature = base64_encode(hash_hmac('sha256', $componentSignature, $secretKey, true));
-                $headers = array(
-                    'Content-Type: application/json',
-                    'Client-Id:' . $clientId,
-                    'Request-Id:' . $requestId,
-                    'Request-Timestamp:' . $dateTimeFinal,
-                    'finalsignature:HMACSHA256=' . $signature
-                );
-                $ch = curl_init();
-                curl_setopt($ch, CURLOPT_URL, $url_path_doku . $targetPath);
-                curl_setopt($ch, CURLOPT_POST, true);
-                curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-                curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($requestBody));
-
-                $result = curl_exec($ch);
-                if ($result === FALSE) {
-                    die('Send Error: ' . curl_error($ch));
-                }
-
-                curl_close($ch);
-
-                $data_result = json_decode($result);
-                $data_result = json_decode($result);
-                $dt = $data_result->virtual_account_info;
-                $key_payment = $dt->virtual_account_number;
+                $dt = isset($data_result->virtual_account_info) ? $data_result->virtual_account_info : '';
+                $key_payment = !empty($dt) ? $dt->virtual_account_number : '';
             }
             $dt_upd = array();
             $dt_upd = array(
                 "session_id" => $randomString,
                 "ttl_belanjaan" => $sub_ttl,
-                "sub_ttl" => $sub_ttl_ongkir,
+                "sub_ttl" => 0,
                 "pot_voucher" => 0,
                 "ttl_price" => $sub_ttl_ongkir_pot_voucher,
                 "nominal_doku" => (int)$nominal_doku > 0 ? $nominal_doku : 0,
@@ -1752,7 +1788,6 @@ class TransaksiController extends Controller
                 "ttl_disc" => $totalDiskon,
             );
 
-
             DB::table('transaksi_detail')->insert($dt_insert);
             DB::table('transaksi')->where('id_transaksi', $id_transaksi)->update($dt_upd);
             if ($payment == 4) {
@@ -1763,10 +1798,7 @@ class TransaksiController extends Controller
             $dt_trans += $dt_upd;
             $dt_trans += array('id_transaksi' => $id_transaksi);
             $dt_trans += array('list_item' => $dt_insert);
-
             // DB::connection()->enableQueryLog();
-
-
             if ($status == 1) Helper::send_order_cni($id_transaksi, 'transaksi');
         }
         $result = array(

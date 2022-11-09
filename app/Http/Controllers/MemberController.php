@@ -1765,16 +1765,20 @@ class MemberController extends Controller
 
     function history_notif(Request $request)
     {
+        $tgl = date('Y-m-d');
+        $tgl = date('Y-m-d H:i:s', strtotime($tgl));
+        $previousMonthLastDay = date("Y-m-d", strtotime("-3 months"));
+        $previousMonthLastDay = date('Y-m-d H:i:s', strtotime($previousMonthLastDay));
         $sort_column = "id_notif::integer DESC";
         $id_member = (int)$request->id_member > 0 ? Helper::last_login((int)$request->id_member) : 0;
         $type = (int)$request->type > 0 ? (int)$request->type : 0;
         $where = array('history_notif.id_member' => $id_member);
         if ($type > 0) $where += array('type' => $type);
-        $count = DB::table('history_notif')->where($where)->count();
+        $count = DB::table('history_notif')->where($where)->whereBetween('created_at', [$previousMonthLastDay, $tgl])->count();
 
         $wheree = array('history_notif.id_member' => $id_member, 'unread' => 1);
         if ($type > 0) $wheree += array('type' => $type);
-        $cnt_unread = DB::table('history_notif')->where($wheree)->count();
+        $cnt_unread = DB::table('history_notif')->where($wheree)->whereBetween('created_at', [$previousMonthLastDay, $tgl])->count();
 
         $result = array();
         $result = array(
@@ -1785,7 +1789,7 @@ class MemberController extends Controller
             'data' => null
         );
         if ($count > 0) {
-            $data = DB::table('history_notif')->where($where)->orderByRaw($sort_column)->get();
+            $data = DB::table('history_notif')->where($where)->whereBetween('created_at', [$previousMonthLastDay, $tgl])->orderByRaw($sort_column)->get();
             $result = array(
                 'err_code' => '00',
                 'err_msg' => 'ok',

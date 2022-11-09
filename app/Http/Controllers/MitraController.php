@@ -201,7 +201,7 @@ class MitraController extends Controller
             'status'        => 0,
         );
         $data_alamat = array(
-            "label_alamat"      => "Register Mitra",
+            "label_alamat"      => "-",
             "nama_penerima"     => $request->nama,
             "phone_penerima"    => $phone,
             "id_provinsi"       => (int)$request->id_provinsi,
@@ -450,7 +450,7 @@ class MitraController extends Controller
 					<img src="' . $di->img . '" width="64" style="border-radius:8px" class="CToWUd"></td>';
                     $html .= '<td valign="top" style="padding:0 0 16px 16px">
 								<div style="margin:0 0 4px;line-height:16px">' . $di->product_name . '</div>
-								<p style="font-weight:bold;margin:4px 0 0">' . number_format($di->jml) . ' x 
+								<p style="font-weight:bold;margin:4px 0 0">' . number_format($di->jml) . ' x
 									<span style="font-weight:bold;font-size:14px;color:#fa591d">Rp. ' . number_format($di->harga) . '</span>
 								</p>
 							</td>';
