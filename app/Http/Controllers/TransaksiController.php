@@ -1611,7 +1611,6 @@ class TransaksiController extends Controller
                 $requestId = $id_transaksi;
                 $invoice_number = $requestId;
                 $amount = $nominal_doku;
-                $metode_pembayaran = 'https://mcni.cni.co.id/api_cni/uploads/cc.png';
                 $targetPath = "/credit-card/v1/payment-page";
                 $requestBody = array(
                     'order' => array(
@@ -1764,7 +1763,13 @@ class TransaksiController extends Controller
                 }
 
                 curl_close($ch);
-
+                 Log::info(serialize($componentSignature));
+                 Log::info(serialize($headers));
+                 Log::info(serialize($requestBody));
+                 Log::info('signature :' . $signature);
+                 Log::info('secretKey :' . $secretKey);
+                 Log::info('clientId : ' . $clientId);
+                 Log::info(serialize($result));
                 $data_result = json_decode($result);
                 $dt = isset($data_result->virtual_account_info) ? $data_result->virtual_account_info : '';
                 $key_payment = !empty($dt) ? $dt->virtual_account_number : '';
@@ -1976,24 +1981,24 @@ class TransaksiController extends Controller
         }
         if ($payment_channel == 36) {
             $cara_bayar = '<div>
-						  <b>Cara membayar di ATM Permata</b><br/>
+						  <b>Cara membayar di ATM</b><br/>
 							1. Masukkan PIN <br/>
 							2. Pilih "Transfer". Apabila menggunakan ATM Bank Lain, pilih "Transaksi lainnya" lalu "Transfer"<br/>
 							3. Pilih "Ke Rek Bank Lain"<br/>
-							4. Masukkan Kode Bank Permata (013) diikuti 16 digit kode bayar 8856046200000xxx sebagai rekening tujuan, kemudian tekan "Benar"<br/>
+							4. Masukkan Kode Bank Permata (013) diikuti 16 digit kode bayar sebagai rekening tujuan, kemudian tekan "Benar"<br/>
 							5. Masukkan Jumlah pembayaran sesuai dengan yang ditagihkan (Jumlah yang ditransfer harus sama persis, tidak boleh lebih dan kurang). Jumlah nominal yang tidak sesuai dengan tagihan akan menyebabkan transaksi gagal <br/>
 							6. Muncul Layar Konfirmasi Transfer yang berisi nomor rekening tujuan Bank Permata dan Nama beserta jumlah yang dibayar, jika sudah benar, Tekan "Benar" <br/>
 							7. Selesai<br/>
 						</div>
 						<div>
 						  <b>Cara membayar di Internet Banking</b><br>
-						  <b>Keterangan: Pembayaran dilakukan di Internet Banking BCA (KlikBCA)</b><br>
+						  <b>Keterangan: Pembayaran tidak bisa dilakukan di Internet Banking BCA (KlikBCA)</b><br>
 							1. Login ke dalam akun Internet Banking<br/>
-							2. Pilih "Transfer" dan pilih "Transfer Virtual Account".<br/>
-							3. Masukkan Kode Virtual Account nya<br/>
-							4. Setelah selesai memasukkan Kode Virtual Account tekan Lanjutkan<br/>
-							5. Muncul layar konfirmasi jumlah total pembayaran jika sudah benar tekan Ya.<br/>
-							6. Selesai<br/>
+							2. Pilih "Transfer" dan pilih "Bank Lainnya". Pilih Bank Permata (013) sebagai rekening tujuan.<br/>
+							3. Masukkan jumlah pembayaran sesuai dengan yang di tagihkan.<br/>
+							4. Isi nomor rekening tujuan dengan 16 digit kode pembayaran.<br/>
+							5. Muncul layar konfirmasi Transfer yang berisi nomor rekening tujuan Bank Permata dan Nama beserta jumlah yang dibayar. Jika sudah benar, tekan "Benar".<br/>
+							6. Selesai.<br/>
 						</div>';
         }
         if ($payment_channel == 37) {
@@ -2153,7 +2158,7 @@ class TransaksiController extends Controller
             $dt_upd = array(
                 'cnote_no' => $cnote,
                 'status' => 4,
-                'id_operator' => $id_operator,
+                'delivery_by' => $id_operator,
                 'delivery_date' => $tgl
             );
             DB::table('transaksi')->where('id_transaksi', $id_transaksi)->update($dt_upd);

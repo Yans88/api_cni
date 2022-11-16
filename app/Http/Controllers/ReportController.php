@@ -2,12 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Helpers\Helper;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\Mail;
 
 class ReportController extends Controller
 {
@@ -36,8 +33,8 @@ class ReportController extends Controller
 		if (in_array($sort_column, $column_int)) $sort_column = $sort_column . "::integer";
 		$sort_column = $sort_column . " " . $sort_order;
 
-		$from = !empty($request->start_date) ? date('Y-m-d H:i', strtotime($request->start_date)) : '';
-		$to = !empty($request->end_date) ? date('Y-m-d H:i', strtotime($request->end_date)) : $from;
+		$from = !empty($request->start_date) ? date('Y-m-d', strtotime($request->start_date)) : '';
+		$to = !empty($request->end_date) ? date('Y-m-d', strtotime($request->end_date)) : $from;
 		$from = empty($from) && !empty($to) ? $to : $from;
 		$to = empty($to) && !empty($from) ? $from : $to;
 
@@ -46,14 +43,14 @@ class ReportController extends Controller
 		$data = null;
 		$sql = '';
 		$sql = "select transaksi.id_transaksi,transaksi.created_at,transaksi.type_member,transaksi.payment_name, members.nama as nama_member,
-				transaksi.iddc,transaksi.wh_name,ttl_pv,ttl_rv,ttl_disc,members.cni_id, members.cni_id_ref from transaksi 
+				transaksi.iddc,transaksi.wh_name,ttl_pv,ttl_rv,ttl_disc,members.cni_id, members.cni_id_ref from transaksi
 				left join members on members.id_member = transaksi.id_member where 1=1 ";
 
 		if ($status >= 0) {
 			$sql .= " and transaksi.status = " . $status;
 		}
 		if (!empty($from)) {
-			$sql .= " and transaksi.created_at::timestamp >= '" . $from . "' and transaksi.created_at::timestamp <= '" . $to . "'";
+            $sql .= " and to_char(transaksi.created_at, 'YYYY-MM-DD') >= '" . $from . "' and to_char(transaksi.created_at, 'YYYY-MM-DD') <= '" . $to . "'";
 		}
 
 		$_dataa = DB::select(DB::raw($sql));
@@ -110,25 +107,23 @@ class ReportController extends Controller
 		if (in_array($sort_column, $column_int)) $sort_column = 'transaksi_detail.' . $sort_column . "::integer";
 		$sort_column = $sort_column . " " . $sort_order;
 
-		$from = !empty($request->start_date) ? date('Y-m-d H:i', strtotime($request->start_date)) : '';
-		$to = !empty($request->end_date) ? date('Y-m-d H:i', strtotime($request->end_date)) : $from;
+		$from = !empty($request->start_date) ? date('Y-m-d', strtotime($request->start_date)) : '';
+		$to = !empty($request->end_date) ? date('Y-m-d', strtotime($request->end_date)) : $from;
 		$from = empty($from) && !empty($to) ? $to : $from;
 		$to = empty($to) && !empty($from) ? $from : $to;
 
-		$count = 0;
-		$_count = 0;
-		$_data = array();
-		$whereIn = array();
+
 		$data = null;
 		$sql = '';
 
 		$sql = "select transaksi_detail.id_trans as id_transaksi,transaksi_detail.kode_produk,transaksi_detail.kode_produk,pv,rv, transaksi_detail.product_name,transaksi_detail.jml,hm_non_ppn,hk_non_ppn,transaksi.type_member, transaksi.created_at, transaksi.payment_name,transaksi.iddc,transaksi.wh_name, members.nama as nama_member,members.cni_id, members.cni_id_ref from transaksi_detail left join transaksi on transaksi.id_transaksi = transaksi_detail.id_trans left join members on members.id_member = transaksi.id_member where 1=1 ";
 
 		if (!empty($from)) {
-			$sql .= " and transaksi.created_at::timestamp >= '" . $from . "' and transaksi.created_at::timestamp <= '" . $to . "'";
+			$sql .= " and to_char(transaksi.created_at, 'YYYY-MM-DD') >= '" . $from . "' and to_char(transaksi.created_at, 'YYYY-MM-DD') <= '" . $to . "'";
 		}
 
 		$_dataa = DB::select(DB::raw($sql));
+
 		$count = count($_dataa);
 
 		$result = array(
@@ -188,8 +183,8 @@ class ReportController extends Controller
 		if (in_array($sort_column, $column_int)) $sort_column = $sort_column . "::integer";
 		$sort_column = $sort_column . " " . $sort_order;
 
-		$from = !empty($request->start_date) ? date('Y-m-d H:i', strtotime($request->start_date)) : '';
-		$to = !empty($request->end_date) ? date('Y-m-d H:i', strtotime($request->end_date)) : $from;
+		$from = !empty($request->start_date) ? date('Y-m-d', strtotime($request->start_date)) : '';
+		$to = !empty($request->end_date) ? date('Y-m-d', strtotime($request->end_date)) : $from;
 		$from = empty($from) && !empty($to) ? $to : $from;
 		$to = empty($to) && !empty($from) ? $from : $to;
 
@@ -198,15 +193,15 @@ class ReportController extends Controller
 		$data = null;
 		$sql = '';
 		$sql = "select transaksi.id_transaksi,transaksi.created_at,transaksi.type_member,transaksi.payment_name, members.nama as nama_member,
-				transaksi.iddc,transaksi.wh_name,ttl_pv,ttl_rv,ttl_disc,jdp,members.cni_id, members.cni_id_ref, transaksi.status, transaksi.logistic_name, transaksi.jdp, transaksi.ongkir, transaksi.key_payment, transaksi.ewallet, transaksi.nominal_doku, transaksi.payment_date,transaksi.ttl_belanjaan as ttl_cb, transaksi.payment_channel from transaksi 
+				transaksi.iddc,transaksi.wh_name,ttl_pv,ttl_rv,ttl_disc,jdp,members.cni_id, members.cni_id_ref, transaksi.status, transaksi.logistic_name, transaksi.jdp, transaksi.ongkir, transaksi.key_payment, transaksi.ewallet, transaksi.nominal_doku, transaksi.payment_date,transaksi.ttl_belanjaan as ttl_cb, transaksi.payment_channel from transaksi
 				left join members on members.id_member = transaksi.id_member where 1=1 ";
 
 		if ($status >= 0) {
 			$sql .= " and transaksi.status = " . $status;
 		}
-		if (!empty($from)) {
-			$sql .= " and transaksi.created_at::timestamp >= '" . $from . "' and transaksi.created_at::timestamp <= '" . $to . "'";
-		}
+        if (!empty($from)) {
+            $sql .= " and to_char(transaksi.created_at, 'YYYY-MM-DD') >= '" . $from . "' and to_char(transaksi.created_at, 'YYYY-MM-DD') <= '" . $to . "'";
+        }
 
 		$_dataa = DB::select(DB::raw($sql));
 		$count = count($_dataa);
@@ -312,8 +307,8 @@ class ReportController extends Controller
 		if (in_array($sort_column, $column_int)) $sort_column = 'transaksi_detail.' . $sort_column . "::integer";
 		$sort_column = $sort_column . " " . $sort_order;
 
-		$from = !empty($request->start_date) ? date('Y-m-d H:i', strtotime($request->start_date)) : '';
-		$to = !empty($request->end_date) ? date('Y-m-d H:i', strtotime($request->end_date)) : $from;
+		$from = !empty($request->start_date) ? date('Y-m-d', strtotime($request->start_date)) : '';
+		$to = !empty($request->end_date) ? date('Y-m-d', strtotime($request->end_date)) : $from;
 		$from = empty($from) && !empty($to) ? $to : $from;
 		$to = empty($to) && !empty($from) ? $from : $to;
 
@@ -324,13 +319,13 @@ class ReportController extends Controller
 		$data = null;
 		$sql = '';
 
-		$sql = "select 
+		$sql = "select
 			transaksi_detail.id_trans as id_transaksi,
 			transaksi_detail.ttl_harga,
 			transaksi_detail.kode_produk,pv,rv,ppn_hk,ppn_hm,
 			transaksi_detail.jml,hm_non_ppn,hk_non_ppn,
-			transaksi.type_member, 
-			transaksi.created_at, 
+			transaksi.type_member,
+			transaksi.created_at,
 			transaksi.payment_name,
 			transaksi.key_payment,
 			transaksi.payment_channel,
@@ -341,9 +336,9 @@ class ReportController extends Controller
 			members.nama as nama_member,
 			members.cni_id, members.cni_id_ref from transaksi_detail left join transaksi on transaksi.id_transaksi = transaksi_detail.id_trans left join members on members.id_member = transaksi.id_member where 1=1 ";
 
-		if (!empty($from)) {
-			$sql .= " and transaksi.created_at::timestamp >= '" . $from . "' and transaksi.created_at::timestamp <= '" . $to . "'";
-		}
+        if (!empty($from)) {
+            $sql .= " and to_char(transaksi.created_at, 'YYYY-MM-DD') >= '" . $from . "' and to_char(transaksi.created_at, 'YYYY-MM-DD') <= '" . $to . "'";
+        }
 
 		$_dataa = DB::select(DB::raw($sql));
 		$count = count($_dataa);
