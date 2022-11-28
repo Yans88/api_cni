@@ -29,7 +29,7 @@ class TransaksiController extends Controller
         $tgl = Carbon::now();
 
         $id_operator = (int)$request->id_operator > 0 ? (int)$request->id_operator : 0;
-        $sql = "select id_transaksi,ewallet,ttl_price, id_member,type_member,type_voucher from transaksi where status=0 and expired_payment::timestamp <= '" . $tgl . "'";
+        $sql = "select id_transaksi,ewallet,ttl_price, id_member,type_member,type_voucher,kode_voucher,cni_id from transaksi where status=0 and expired_payment::timestamp <= '" . $tgl . "'";
         $trans_expired = DB::select(DB::raw($sql));
         $whereIn = array();
         $dt_refund_ewallet = array();
@@ -94,7 +94,7 @@ class TransaksiController extends Controller
 
                 )
                     ->where($where)->leftJoin('members', 'members.id_member', '=', 'transaksi.id_member')
-                    ->whereRaw("LOWER(id_transaksi) like '%" . $keyword . "%'")->get();
+                    ->whereRaw("transaksi.id_transaksi::text like '%" . $keyword . "%'")->get();
                 $count = count($_data);
             } else {
                 $count = DB::table('transaksi')->where($where)->count();
@@ -181,7 +181,6 @@ class TransaksiController extends Controller
 
     function store(Request $request)
     {
-        //Log::info(serialize($request->all()));
         $url_path_doku = env('URL_JOKUL');
         $clientId = env('CLIENT_ID_JOKUL');
         $secretKey = env('SECRET_KEY_JOKUL');
@@ -214,7 +213,7 @@ class TransaksiController extends Controller
         $is_upgrade = (int)$request->is_upgrade > 0 ? (int)$request->is_upgrade : 0;
 
         $kodevoucher = !empty($request->kodevoucher) ? $request->kodevoucher : '';
-        $vouchervalue = !empty($request->namavoucher) ? $request->vouchervalue : '';
+        $vouchervalue = !empty($request->vouchervalue) ? $request->vouchervalue : '';
         $freeproduk = !empty($request->freeproduk) ? $request->freeproduk : '';
 
         $kode_voucher = '';
@@ -254,6 +253,7 @@ class TransaksiController extends Controller
             $pot_voucher = $vouchervalue;
             $type_voucher = 4;
         }
+        Log::info('2' . $pot_voucher);
         $saldo_awal = $ewallet;
         $ttl_weight = str_replace(',', '', $ttl_weight);
         if ($tipe_pengiriman == 2) {
@@ -383,7 +383,7 @@ class TransaksiController extends Controller
                 $is_limited = 0;
             }
         }
-
+        Log::info('3' . $pot_voucher);
         if (!empty($request->ewallet)) $payment_name .= "eWallet";
         if ($payment == 1) $payment_name .= !empty($payment_name) ? " & Credit Card" : "Credit Card";
         if ($payment == 4) $payment_name .= !empty($payment_name) ? " & Doku QRIS" : "Doku QRIS";
@@ -658,11 +658,12 @@ class TransaksiController extends Controller
                         "is_bonus" => $is_bonus
                     );
                 }
-                if ($type_voucher == 4) {
+
+                if ($type_voucher == 4 && !empty($freeproduk)) {
                     $pot_voucher = 0;
                     $produk_bonus = $freeproduk;
                     $where = array();
-                    $where = array('product.kode_produk' => $produk_bonus);
+                    $where = array('product.kode_produk' => $produk_bonus, 'product.deleted_at' => null);
                     $dt_produk_bonus = DB::table('product')->where($where)
                         ->leftJoin('category', 'category.id_category', '=', 'product.id_category')->first();
                     $produk_bonus_name = isset($dt_produk_bonus) ? $dt_produk_bonus->product_name : '';
@@ -671,11 +672,11 @@ class TransaksiController extends Controller
                     $is_bonus = 1;
                     $dt_insert[] = array(
                         "id_trans" => $id_transaksi,
-                        "kode_produk" => (int)$id_product_bonus > 0 && !empty($produk_bonus_kode) ? $produk_bonus_kode : '-',
-                        "id_product" => $id_product_bonus,
+                        "kode_produk" => !empty($produk_bonus_kode) ? $produk_bonus_kode : '-',
+                        "id_product" => (int)$id_product_bonus > 0 ? $id_product_bonus : 0,
                         "jml" => 1,
                         "img" => (int)$id_product_bonus > 0 && !empty($dt_produk_bonus->img) ? env('APP_URL') . '/api_cni/uploads/products/' . $dt_produk_bonus->img : '',
-                        "id_category" => (int)$id_product_bonus > 0 ? $dt_produk_bonus->id_category : '',
+                        "id_category" => (int)$id_product_bonus > 0 ? $dt_produk_bonus->id_category : 0,
                         "product_name" => (int)$id_product_bonus > 0 ? $produk_bonus_name : '',
                         "category_name" => (int)$id_product_bonus > 0 ? $dt_produk_bonus->category_name : '',
                         "special_promo" => 0,
@@ -698,7 +699,7 @@ class TransaksiController extends Controller
                     );
                 }
             }
-
+            Log::info('5' . $pot_voucher);
             if (count($err_hrg) > 0) {
                 DB::rollback();
                 DB::table('transaksi')->where('id_transaksi', $id_transaksi)->delete();
@@ -721,15 +722,16 @@ class TransaksiController extends Controller
                 return response($result);
                 return false;
             }
-
+            DB::table('transaksi_detail')->insert($dt_insert);
             if ($type_voucher == 4) {
                 $custid = empty($cni_id) ? $id_member : '';
                 $memberid = $cni_id;
                 $submit_voucher = Helper::submit_voucher($custid, $memberid, $kodevoucher, $id_transaksi);
-                Log::info(serialize($submit_voucher));
-                if ($submit_voucher->result != 'y') {
+
+                if ($submit_voucher['result'] != 'y') {
                     DB::rollback();
                     DB::table('transaksi')->where('id_transaksi', $id_transaksi)->delete();
+                    DB::table('transaksi_detail')->where('id_trans', $id_transaksi)->delete();
                     return response($submit_voucher);
                     return false;
                 }
@@ -743,10 +745,13 @@ class TransaksiController extends Controller
                 for ($i = 0; $i < 32; $i++) {
                     $randomString .= $words[rand(0, $charactersLength - 1)];
                 }
-                $sub_ttl_ongkir = $sub_ttl + $ongkir;
 
+                $sub_ttl = (int)$sub_ttl > 0 ? $sub_ttl : 0;
+                $ongkir = (int)$ongkir > 0 ? $ongkir : 0;
+                $sub_ttl_ongkir = $sub_ttl + $ongkir;
                 $sub_ttl_ongkir_pot_voucher = $sub_ttl_ongkir - $pot_voucher;
                 $nominal_doku = $sub_ttl_ongkir_pot_voucher - $ewallet;
+
                 $action = "ALLOCATE_EWALLET";
                 $ket = '';
                 if ($sub_ttl_ongkir_pot_voucher <= $ewallet) {
@@ -770,6 +775,7 @@ class TransaksiController extends Controller
                     if (isset($data_ewallet['result']) && $data_ewallet['result'] != "Y") {
                         DB::rollback();
                         DB::table('transaksi')->where('id_transaksi', $id_transaksi)->delete();
+                        DB::table('transaksi_detail')->where('id_trans', $id_transaksi)->delete();
                         return response($data_ewallet);
                         return false;
                     }
@@ -1078,11 +1084,6 @@ class TransaksiController extends Controller
                         ),
                     );
                     if ($payment_channel == 29) {
-                        // $prefix = 39355000;
-                        // $_phone = !empty($phone_member) ? str_replace('62', '', $phone_member) : mt_rand(100000, 999999);
-                        // $no_va = $_phone . '' . $id_member . '' . $id_transaksi;
-                        // $no_va = substr($no_va, -8);
-                        // $no_va = $prefix . '' . $no_va;
                         $no_va = '3830038300' . $id_transaksi;
                         $requestBody = array(
                             'order' => array(
@@ -1128,13 +1129,6 @@ class TransaksiController extends Controller
                     }
 
                     curl_close($ch);
-                    // Log::info(serialize($componentSignature));
-                    // Log::info(serialize($headers));
-                    // Log::info(serialize($requestBody));
-                    // Log::info('signature :' . $signature);
-                    // Log::info('secretKey :' . $secretKey);
-                    // Log::info('clientId : ' . $clientId);
-                    // Log::info(serialize($result));
                     $data_result = json_decode($result);
                     $dt = isset($data_result->virtual_account_info) ? $data_result->virtual_account_info : '';
                     $key_payment = !empty($dt) ? $dt->virtual_account_number : '';
@@ -1158,7 +1152,7 @@ class TransaksiController extends Controller
                     "ttl_disc" => $totalDiskon,
                 );
 
-                DB::table('transaksi_detail')->insert($dt_insert);
+                //DB::table('transaksi_detail')->insert($dt_insert);
                 DB::table('transaksi')->where('id_transaksi', $id_transaksi)->update($dt_upd);
                 if ($payment == 4) {
                     $path = 'http://chart.googleapis.com/chart?chs=300x300&cht=qr&chld=Q|3&chl=' . $key_payment;
@@ -1254,10 +1248,13 @@ class TransaksiController extends Controller
                         });
                     }
                     if ($status == 1) {
+                        $key_payment = $payment == 2 ? $key_payment : '';
                         $content_email_payment_complete = $out['content_email_payment_complete'];
                         $content_email_payment_complete = str_replace('[#nama#]', $nama, $content_email_payment_complete);
                         $content_email_payment_complete = str_replace('[#no_transaksi#]', $id_transaksi, $content_email_payment_complete);
                         $content_email_payment_complete = str_replace('[#ttl_bayar#]', number_format($sub_ttl_ongkir), $content_email_payment_complete);
+                        $content_email_payment_complete = str_replace('[#cara_bayar#]', $cara_bayar, $content_email_payment_complete);
+                        $content_email_payment_complete = str_replace('[#key_payment#]', $key_payment, $content_email_payment_complete);
                         $content_email_payment_complete = str_replace('http://202.158.64.238/api_cni/uploads/29.png', $metode_pembayaran, $content_email_payment_complete);
                         $html = '<table cellpadding="0" cellspacing="0" border="0" width="80%" style="border-collapse:collapse;color:rgba(49,53,59,0.96);">
 							<tbody>';
@@ -1282,9 +1279,38 @@ class TransaksiController extends Controller
                         $data_email['nama'] = $nama;
                         $data_email['email'] = $email;
                         $data_email['content_email'] = $content_email_payment_complete;
+
+                        $notif_fcm = array(
+                            'body' => 'Pembayaran anda sudah kami terima dan pesanan anda akan kami proses segera',
+                            'title' => 'CNI',
+                            'badge' => '1',
+                            'sound' => 'Default'
+                        );
+                        $dt_insert_notif = array();
+                        $dt_insert_notif = array(
+                            'id' => $id_transaksi,
+                            'id_member' => $id_member,
+                            'content' => 'Pembayaran anda sudah kami terima dan pesanan anda akan kami proses segera',
+                            'type' => 1,
+                            'created_at' => $tgl,
+                            'created_by' => $id_member
+                        );
+                        $id_notif = DB::table('history_notif')->insertGetId($dt_insert_notif, "id_notif");
+                        $data_fcm = array(
+                            'id_notif' => $id_notif,
+                            'id' => $id_transaksi,
+                            'title' => 'CNI',
+                            'status' => 1,
+                            'message' => 'Pembayaran anda sudah kami terima dan pesanan anda akan kami proses segera',
+                            'type' => '1'
+                        );
+                        Helper::send_fcm($id_member, $data_fcm, $notif_fcm);
+
                         Mail::send([], ['users' => $data_email], function ($message) use ($data_email) {
                             $message->to($data_email['email'], $data_email['nama'])->subject('Transaksi')->setBody($data_email['content_email'], 'text/html');
                         });
+
+
                     }
                 }
                 if ((int)$is_regmitra > 0) {
@@ -1330,12 +1356,13 @@ class TransaksiController extends Controller
             } else {
                 DB::rollback();
                 DB::table('transaksi')->where('id_transaksi', $id_transaksi)->delete();
+                DB::table('transaksi_detail')->where('id_trans', $id_transaksi)->delete();
             }
         } catch (Exception $e) {
             Log::info($e);
             DB::rollback();
             DB::table('transaksi')->where('id_transaksi', $id_transaksi)->delete();
-            // something went wrong
+            DB::table('transaksi_detail')->where('id_trans', $id_transaksi)->delete();
         }
 
         $result = array(
@@ -1763,13 +1790,13 @@ class TransaksiController extends Controller
                 }
 
                 curl_close($ch);
-                 Log::info(serialize($componentSignature));
-                 Log::info(serialize($headers));
-                 Log::info(serialize($requestBody));
-                 Log::info('signature :' . $signature);
-                 Log::info('secretKey :' . $secretKey);
-                 Log::info('clientId : ' . $clientId);
-                 Log::info(serialize($result));
+                Log::info(serialize($componentSignature));
+                Log::info(serialize($headers));
+                Log::info(serialize($requestBody));
+                Log::info('signature :' . $signature);
+                Log::info('secretKey :' . $secretKey);
+                Log::info('clientId : ' . $clientId);
+                Log::info(serialize($result));
                 $data_result = json_decode($result);
                 $dt = isset($data_result->virtual_account_info) ? $data_result->virtual_account_info : '';
                 $key_payment = !empty($dt) ? $dt->virtual_account_number : '';
@@ -2172,66 +2199,31 @@ class TransaksiController extends Controller
             $data_item = DB::table('transaksi_detail')->select('product_name', 'img', 'harga', 'jml')->where('id_trans', $id_transaksi)->get();
             unset($dt_upd['status']);
             $dt_upd += array('id_transaksi' => $id_transaksi);
-            // $setting = DB::table('setting')->get()->toArray();
-            // $out = array();
-            // if (!empty($setting)) {
-            // foreach ($setting as $val) {
-            // $out[$val->setting_key] = $val->setting_val;
-            // }
-            // }
-            // $content_email_dikirimkan_cust = $out['content_email_dikirimkan_cust'];
-            // $content_email_hold_cust = str_replace('[#tgl_bayar#]', date('d-m-Y H:i', strtotime($data->payment_date)), $content_email_dikirimkan_cust);
-            // $content_email_hold_cust = str_replace('[#no_transaksi#]', $id_transaksi, $content_email_hold_cust);
-            // $content_email_hold_cust = str_replace('[#payment_channel#]', $data->payment_name, $content_email_hold_cust);
-            // $content_email_hold_cust = str_replace('[#ongkir#]', number_format($data->ongkir), $content_email_hold_cust);
-            // $content_email_hold_cust = str_replace('[#pot_voucher#]', number_format($data->pot_voucher), $content_email_hold_cust);
-            // $content_email_hold_cust = str_replace('[#ttl_bayar#]', number_format($data->ttl_price), $content_email_hold_cust);
-
-            // $html = '<table cellpadding="0" cellspacing="0" border="0" width="80%" style="border-collapse:collapse;color:rgba(49,53,59,0.96);">
-            // <tbody>';
-            // foreach ($data_item as $di) {
-            // $html .= '<tr>';
-            // $html .= '<td valign="top" width="64" style="padding:0 0 16px 0">
-            // <img src="' . $di->img . '" width="64" style="border-radius:8px" class="CToWUd"></td>';
-            // $html .= '<td valign="top" style="padding:0 0 16px 16px">
-            // <div style="margin:0 0 4px;line-height:16px">' . $di->product_name . '</div>
-            // <p style="font-weight:bold;margin:4px 0 0">' . number_format($di->jml) . ' x
-            // <span style="font-weight:bold;font-size:14px;color:#fa591d">Rp. ' . number_format($di->harga) . '</span>
-            // </p>
-            // </td>';
-            // $html .= '</tr>';
-            // }
-            // $html .= '</tbody></table>';
-            // $content_email_hold_cust = str_replace('[#detail_pesanan#]', $html, $content_email_hold_cust);
-            // $data->content_email_hold_cust = $content_email_hold_cust;
-            // $notif_fcm = array(
-            // 'body'			=> 'Pesananan anda sudah dikirimkan',
-            // 'title'			=> 'CNI',
-            // 'badge'			=> '1',
-            // 'sound'			=> 'Default'
-            // );
-            // $dt_insert_notif = array();
-            // $dt_insert_notif = array(
-            // 'id'			=> $id_transaksi,
-            // 'id_member'		=> $data->id_member,
-            // 'content'		=> 'Pesananan anda sudah dikirimkan',
-            // 'type'			=> 1,
-            // 'created_at'	=> $tgl,
-            // 'created_by'	=> $id_operator
-            // );
-            // $id_notif = DB::table('history_notif')->insertGetId($dt_insert_notif, "id_notif");
-            // $data_fcm = array(
-            // 'id_notif'		=> $id_notif,
-            // 'id'			=> $id_transaksi,
-            // 'title'			=> 'CNI',
-            // 'status'		=> 4,
-            // 'message' 		=> 'Pesananan anda sudah dikirimkan',
-            // 'type' 			=> '1'
-            // );
-            // Helper::send_fcm($data->id_member, $data_fcm, $notif_fcm);
-            // Mail::send([], ['users' => $data], function ($message) use ($data) {
-            // $message->to($data->email, $data->nama_member)->subject('Transaksi Hold')->setBody($data->content_email_hold_cust, 'text/html');
-            // });
+            $notif_fcm = array(
+                'body' => 'Pesananan anda sudah dikirimkan',
+                'title' => 'CNI',
+                'badge' => '1',
+                'sound' => 'Default'
+            );
+            $dt_insert_notif = array();
+            $dt_insert_notif = array(
+                'id' => $id_transaksi,
+                'id_member' => $data->id_member,
+                'content' => 'Pesananan anda sudah dikirimkan',
+                'type' => 1,
+                'created_at' => $tgl,
+                'created_by' => $id_operator
+            );
+            $id_notif = DB::table('history_notif')->insertGetId($dt_insert_notif, "id_notif");
+            $data_fcm = array(
+                'id_notif' => $id_notif,
+                'id' => $id_transaksi,
+                'title' => 'CNI',
+                'status' => 4,
+                'message' => 'Pesananan anda sudah dikirimkan',
+                'type' => '1'
+            );
+            Helper::send_fcm($data->id_member, $data_fcm, $notif_fcm);
             $result = array(
                 'err_code' => '00',
                 'err_msg' => 'ok',

@@ -164,6 +164,7 @@ $router->post('/test_pricelist', 'ProductController@test_get_hrg');
 $router->post('/simpan_limit_beli', 'ProductController@store_limit');
 $router->post('/del_lp', 'ProductController@del_lp');
 $router->post('/get_lp', 'ProductController@get_lp');
+$router->post('/cek_limit_product', 'ProductController@cek_limit');
 
 $router->post('/provinsi', 'ProvinsiController@index');
 $router->post('/simpan_provinsi', 'ProvinsiController@store');

@@ -538,6 +538,7 @@ class Helper
         $token = env('TOKEN_SUBMIT_VOUCHER_CNI');
         $cnt_details = DB::table('transaksi_detail')->where(array('id_trans' => $id_transaksi))->count();
         $list_item = null;
+
         if ($cnt_details > 0) {
             $details = DB::table('transaksi_detail')->where(array('id_trans' => $id_transaksi))->get();
             $list_item[] = array("totalline" => $cnt_details);
@@ -560,6 +561,7 @@ class Helper
                 "totalorder" => $totalorder,
                 "detailcart" => $list_item,
             );
+            
             $curl = curl_init();
             curl_setopt_array($curl, array(
                 CURLOPT_URL => $url,

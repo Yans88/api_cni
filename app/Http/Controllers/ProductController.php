@@ -72,7 +72,7 @@ class ProductController extends Controller
                     $is_grace_periode = 16 - (int)$diff->format("%R%a");
                 }
             }
-			if ($type == 3) {
+            if ($type == 3) {
                 $end_date = date('Y-m-d', strtotime($data_member->end_member));
                 if ($tgll > $end_date) {
                     $date1 = date_create($end_date);
@@ -117,15 +117,15 @@ class ProductController extends Controller
 
         if ($is_cms == 0) {
             $sql = "select product.id_product, id_pricelist, pricelist.harga_member::numeric, pricelist.harga_konsumen::numeric,pv,rv from product left join pricelist on pricelist.id_product = product.id_product
-            where product.deleted_at is null and pricelist.deleted_at is null and 
-           ((product.start_date::timestamp <= '" . $tgl . "' and product.end_date::timestamp >= '" . $tgl . "') or 
-           (product.start_date::timestamp >= '" . $tgl . "' and product.end_date::timestamp <= '" . $tgl . "')) and 
-           ((pricelist.start_date::timestamp <= '" . $tgl . "' and pricelist.end_date::timestamp >= '" . $tgl . "') or 
+            where product.deleted_at is null and pricelist.deleted_at is null and
+           ((product.start_date::timestamp <= '" . $tgl . "' and product.end_date::timestamp >= '" . $tgl . "') or
+           (product.start_date::timestamp >= '" . $tgl . "' and product.end_date::timestamp <= '" . $tgl . "')) and
+           ((pricelist.start_date::timestamp <= '" . $tgl . "' and pricelist.end_date::timestamp >= '" . $tgl . "') or
            (pricelist.start_date::timestamp >= '" . $tgl . "' and pricelist.end_date::timestamp <= '" . $tgl . "'))";
             $sql .= $query;
         } else {
             $sql_pricelist = '';
-            $sql_pricelist = "select id_pricelist,id_product, harga_konsumen,harga_member,pv,rv from pricelist 
+            $sql_pricelist = "select id_pricelist,id_product, harga_konsumen,harga_member,pv,rv from pricelist
             where deleted_at is null and ((start_date::timestamp <= '" . $tgl . "' and end_date::timestamp >= '" . $tgl . "') or (start_date::timestamp >= '" . $tgl . "' and end_date::timestamp <= '" . $tgl . "'))";
 
 
@@ -164,19 +164,19 @@ class ProductController extends Controller
             if (!empty($keyword)) {
                 $_data = DB::table('product')->select('product.*', 'category_name')
                     ->whereIn('id_product', $whereIn);
-                if ($is_cms <= 0) $_data = $_data->where('product.qty', '>', 0)->whereNotIn('id_product', [64,65,66]);
+                if ($is_cms <= 0) $_data = $_data->where('product.qty', '>', 0)->whereNotIn('id_product', [64, 65, 66]);
                 $_data = $_data->leftJoin('category', 'category.id_category', '=', 'product.id_category')
                     ->where($where)->whereRaw("(LOWER(product.product_name) like '%" . $keyword . "%' or LOWER(product.kode_produk) like '%" . $keyword . "%')")->get();
                 $count = count($_data);
             } else {
                 $count = DB::table('product')->where($where);
-                if ($is_cms <= 0) $_data = $count->where('product.qty', '>', 0)->whereNotIn('id_product', [64,65,66]);
+                if ($is_cms <= 0) $_data = $count->where('product.qty', '>', 0)->whereNotIn('id_product', [64, 65, 66]);
                 $count = $count->whereIn('id_product', $whereIn)->count();
                 $per_page = $per_page > 0 ? $per_page : $count;
                 $offset = ($page_number - 1) * $per_page;
                 $_data = DB::table('product')->select('product.*', 'category_name')
                     ->whereIn('id_product', $whereIn);
-                if ($is_cms <= 0) $_data = $_data->where('product.qty', '>', 0)->whereNotIn('id_product', [64,65,66]);
+                if ($is_cms <= 0) $_data = $_data->where('product.qty', '>', 0)->whereNotIn('id_product', [64, 65, 66]);
                 $_data = $_data->leftJoin('category', 'category.id_category', '=', 'product.id_category')
                     ->where($where)->offset($offset)->limit($per_page)->orderByRaw($sort_column)->get();
             }
@@ -185,19 +185,19 @@ class ProductController extends Controller
         $result = array();
         $_limit = array();
         $_jml_beli = array();
-		$data_cart = [];
+        $data_cart = [];
         $result = array(
-            'err_code'      => '04',
-            'err_msg'       => 'data not found',
-            'total_data'    => 0,
-            'data'          => null
+            'err_code' => '04',
+            'err_msg' => 'data not found',
+            'total_data' => 0,
+            'data' => null
         );
 
         if ((int)$count > 0) {
-            $sql_limit = "select id_lp,id_product, limit_pembelian, start_date::timestamp, end_date::timestamp from limit_pembelian 
+            $sql_limit = "select id_lp,id_product, limit_pembelian, start_date::timestamp, end_date::timestamp from limit_pembelian
             where deleted_at is null and ((start_date::timestamp <= '" . $tgl . "' and end_date::timestamp >= '" . $tgl . "') or (start_date::timestamp >= '" . $tgl . "' and end_date::timestamp <= '" . $tgl . "'))";
             $limit_product = DB::select(DB::raw($sql_limit));
-            $jml_beli = 0;            
+            $jml_beli = 0;
             if (!empty($limit_product)) {
                 foreach ($limit_product as $lp) {
                     $_limit['id_lp'][$lp->id_product] = (int)$lp->id_lp;
@@ -215,21 +215,21 @@ class ProductController extends Controller
                         $_jml_beli[$lp->id_product] = (int)$lp->jml_beli;
                     }
                 }
-				
-				
+
+
             }
-			
-			if($id_member > 0){
-				$cnt_cart = DB::table('cart')->where('id_member', $id_member)->whereIn('id_product', $whereIn)->count();
-				if((int)$cnt_cart > 0){
-					$dt_cart = DB::table('cart')->select('id_product','qty')->where('id_member', $id_member)->whereIn('id_product', $whereIn)->get();
-					if(!empty($dt_cart)){
-						foreach($dt_cart as $dc){
-							$data_cart[$dc->id_product] = (int)$dc->qty;
-						}
-					}
-				}
-			}
+
+            if ($id_member > 0) {
+                $cnt_cart = DB::table('cart')->where('id_member', $id_member)->whereIn('id_product', $whereIn)->count();
+                if ((int)$cnt_cart > 0) {
+                    $dt_cart = DB::table('cart')->select('id_product', 'qty')->where('id_member', $id_member)->whereIn('id_product', $whereIn)->get();
+                    if (!empty($dt_cart)) {
+                        foreach ($dt_cart as $dc) {
+                            $data_cart[$dc->id_product] = (int)$dc->qty;
+                        }
+                    }
+                }
+            }
 
             $where = array('id_member' => $id_member);
             $cnt_wishlist = DB::table('wishlist')->where($where)->count();
@@ -245,7 +245,7 @@ class ProductController extends Controller
                 if (in_array($d->id_product, $wishlist)) $is_wishlist = 1;
                 $path_img = null;
                 if (empty($d->deleted_at) || $d->deleted_at == '') {
-                    $path_img  = !empty($d->img) ? env('APP_URL') . '/api_cni/uploads/products/' . $d->img : null;
+                    $path_img = !empty($d->img) ? env('APP_URL') . '/api_cni/uploads/products/' . $d->img : null;
                     unset($d->created_by);
                     unset($d->updated_by);
                     unset($d->deleted_by);
@@ -266,7 +266,7 @@ class ProductController extends Controller
                     $d->terjual = rand(1, 1000);
                     $d->jml_limit_beli = $limit_beli;
                     $d->jml_beli = $jml_beli;
-                    $d->qty_cart = isset($data_cart[$d->id_product]) ? (int)$data_cart[$d->id_product] : 0;					
+                    $d->qty_cart = isset($data_cart[$d->id_product]) ? (int)$data_cart[$d->id_product] : 0;
                     $d->is_limit_beli = (int)$jml_beli >= (int)$limit_beli ? 1 : 0;
                     if ($is_cms > 0) $data[] = $d;
                     if ((int)$d->harga > 0 && $is_cms <= 0) $data[] = $d;
@@ -279,10 +279,10 @@ class ProductController extends Controller
             }
 
             $result = array(
-                'err_code'      => '00',
-                'err_msg'          => 'ok',
-                'total_data'    => $count,
-                'data'          => $data
+                'err_code' => '00',
+                'err_msg' => 'ok',
+                'total_data' => $count,
+                'data' => $data
             );
         }
         return response($result);
@@ -310,18 +310,18 @@ class ProductController extends Controller
                 ->where($where)->where('id_product', '>', 1)->offset($offset)->limit($per_page)->orderBy($sort_column, $sort_order)->get();
         }
         $result = array(
-            'err_code'      => '04',
-            'err_msg'       => 'data not found',
-            'total_data'    => $count,
-            'data'          => null
+            'err_code' => '04',
+            'err_msg' => 'data not found',
+            'total_data' => $count,
+            'data' => null
         );
         if ((int)$count > 0) {
 
             $result = array(
-                'err_code'      => '00',
-                'err_msg'          => 'ok',
-                'total_data'    => $count,
-                'data'          => $_data
+                'err_code' => '00',
+                'err_msg' => 'ok',
+                'total_data' => $count,
+                'data' => $_data
             );
         }
         return response($result);
@@ -340,9 +340,9 @@ class ProductController extends Controller
         $kode_produk = $request->kode_produk;
         if (!$this->isValidProductCode($id, $kode_produk)) {
             $result = array(
-                'err_code'  => '06',
-                'err_msg'   => 'Product Code already exist',
-                'data'      => null
+                'err_code' => '06',
+                'err_msg' => 'Product Code already exist',
+                'data' => null
             );
             return response($result);
             return false;
@@ -350,35 +350,35 @@ class ProductController extends Controller
         if ($favourite > 0) {
             if (!$this->isValidPriority($id, $priority_number_favourite)) {
                 $result = array(
-                    'err_code'  => '07',
-                    'err_msg'   => 'Number already exist',
-                    'data'      => null
+                    'err_code' => '07',
+                    'err_msg' => 'Number already exist',
+                    'data' => null
                 );
                 return response($result);
                 return false;
             }
         }
         $data = array(
-            'id_category'   => (int)$request->id_category > 0 ? $request->id_category : '',
-            'product_name'  => $request->product_name,
-            'kode_produk'  => $kode_produk,
+            'id_category' => (int)$request->id_category > 0 ? $request->id_category : '',
+            'product_name' => $request->product_name,
+            'kode_produk' => $kode_produk,
             // 'harga'         => str_replace(',', '', $request->harga),
-            'deskripsi'     => $request->deskripsi,
-            'short_description'     => $request->short_description,
-            'berat'         => str_replace(',', '', $request->berat),
-            'kondisi'       => !empty($request->kondisi) ? $request->kondisi : null,
+            'deskripsi' => $request->deskripsi,
+            'short_description' => $request->short_description,
+            'berat' => str_replace(',', '', $request->berat),
+            'kondisi' => !empty($request->kondisi) ? $request->kondisi : null,
             'min_pembelian' => str_replace(',', '', $request->min_pembelian),
-            'video_url'     => !empty($request->video_url) ? $request->video_url : null,
-            'qty'           => (int)$request->qty > 0 ? str_replace(',', '', $request->qty) : 0,
+            'video_url' => !empty($request->video_url) ? $request->video_url : null,
+            'qty' => (int)$request->qty > 0 ? str_replace(',', '', $request->qty) : 0,
             // 'diskon_member' => !empty($request->diskon_member) ? $request->diskon_member : 0,
             'special_promo' => (int)$request->special_promo,
-            'favourite'     => $favourite,
-            'priority_number_favourite'     => (int)$priority_number_favourite,
-            'start_date'    => !empty($request->start_date) ? date('Y-m-d H:i', strtotime($request->start_date)) : '',
-            'end_date'      => !empty($request->end_date) ? date('Y-m-d H:i', strtotime($request->end_date)) : '',
+            'favourite' => $favourite,
+            'priority_number_favourite' => (int)$priority_number_favourite,
+            'start_date' => !empty($request->start_date) ? date('Y-m-d H:i', strtotime($request->start_date)) : '',
+            'end_date' => !empty($request->end_date) ? date('Y-m-d H:i', strtotime($request->end_date)) : '',
         );
         if (!empty($path_img)) {
-            $nama = str_replace(' ', '',  $request->product_name);
+            $nama = str_replace(' ', '', $request->product_name);
             if (strlen($nama) > 32) $nama = substr($nama, 0, 32);
             $nama = strtolower($nama);
             $nama_file = $_tgl . '' . $nama;
@@ -390,18 +390,18 @@ class ProductController extends Controller
             $_extension = array('png', 'jpg', 'jpeg');
             if ($fileSize > 2099200) { // satuan bytes
                 $result = array(
-                    'err_code'  => '07',
-                    'err_msg'   => 'file size over 2048',
-                    'data'      => $fileSize
+                    'err_code' => '07',
+                    'err_msg' => 'file size over 2048',
+                    'data' => $fileSize
                 );
                 return response($result);
                 return false;
             }
             if (!in_array($extension, $_extension)) {
                 $result = array(
-                    'err_code'  => '07',
-                    'err_msg'   => 'file extension not valid',
-                    'data'      => null
+                    'err_code' => '07',
+                    'err_msg' => 'file extension not valid',
+                    'data' => null
                 );
                 return response($result);
                 return false;
@@ -420,15 +420,15 @@ class ProductController extends Controller
         if ($id > 0) {
             $data += array('id_product' => $id);
             $result = array(
-                'err_code'  => '00',
-                'err_msg'   => 'ok',
-                'data'      => $data
+                'err_code' => '00',
+                'err_msg' => 'ok',
+                'data' => $data
             );
         } else {
             $result = array(
-                'err_code'  => '05',
-                'err_msg'   => 'insert has problem',
-                'data'      => null
+                'err_code' => '05',
+                'err_msg' => 'insert has problem',
+                'data' => null
             );
         }
         return response($result);
@@ -442,9 +442,9 @@ class ProductController extends Controller
         DB::table('product')->where('id_product', $id)->update($data);
         $result = array();
         $result = array(
-            'err_code'  => '00',
-            'err_msg'   => 'ok',
-            'data'      => null
+            'err_code' => '00',
+            'err_msg' => 'ok',
+            'data' => null
         );
         return response($result);
     }
@@ -461,9 +461,9 @@ class ProductController extends Controller
         $where = array('product.deleted_at' => null, 'id_product' => $id);
 
         $result = array(
-            'err_code'  => '04',
-            'err_msg'   => 'data not found',
-            'data'      => $id_member
+            'err_code' => '04',
+            'err_msg' => 'data not found',
+            'data' => $id_member
         );
         $count = 0;
         $count = DB::table('product')->where($where)->count();
@@ -474,7 +474,7 @@ class ProductController extends Controller
             $data = DB::table('product')->select('product.*', 'category_name')
                 ->leftJoin('category', 'category.id_category', '=', 'product.id_category')
                 ->where($where)->first();
-            $sql_pricelist = "select id_pricelist,id_product, harga_konsumen,harga_member,pv,rv from pricelist 
+            $sql_pricelist = "select id_pricelist,id_product, harga_konsumen,harga_member,pv,rv from pricelist
                 where id_product=$id and deleted_at is null and ((start_date::timestamp <= '" . $tgl . "' and end_date::timestamp >= '" . $tgl . "') or (start_date::timestamp >= '" . $tgl . "' and end_date::timestamp <= '" . $tgl . "'))";
             $pricelist_active = DB::select(DB::raw($sql_pricelist));
             if (!empty($pricelist_active)) {
@@ -494,10 +494,10 @@ class ProductController extends Controller
             if (!empty($data_img)) {
                 foreach ($data_img as $d) {
                     $path_img = null;
-                    $path_img  = !empty($d->img) ? env('APP_URL') . '/api_cni/uploads/products/' . $d->img : null;
+                    $path_img = !empty($d->img) ? env('APP_URL') . '/api_cni/uploads/products/' . $d->img : null;
                     $list_img[] = array(
-                        'id'            => $d->id,
-                        'img_product'   => $path_img
+                        'id' => $d->id,
+                        'img_product' => $path_img
                     );
                 }
             }
@@ -510,7 +510,7 @@ class ProductController extends Controller
                 $sort_order = 'DESC';
                 $data_ulasan = DB::table('transaksi_detail')->select('rating', 'ulasan', 'img_ulasan', 'tgl_ulasan')->where($where)->orderBy($sort_column, $sort_order)->get();
             }
-            $sql_limit = "select id_lp,id_product, limit_pembelian, start_date::timestamp, end_date::timestamp from limit_pembelian 
+            $sql_limit = "select id_lp,id_product, limit_pembelian, start_date::timestamp, end_date::timestamp from limit_pembelian
             where deleted_at is null and id_product = $id and ((start_date::timestamp <= '" . $tgl . "' and end_date::timestamp >= '" . $tgl . "') or (start_date::timestamp >= '" . $tgl . "' and end_date::timestamp <= '" . $tgl . "'))";
             $limit_product = DB::select(DB::raw($sql_limit));
             $jml_beli = 0;
@@ -525,14 +525,14 @@ class ProductController extends Controller
                     $jml_beli = (int)$beli_product[0]->jml_beli;
                 }
             }
-			
-			$qty_cart = 0;
-			if((int)$id_member > 0){				
-				$where = array();  
-				$where = array('cart.id_member'=>$id_member, 'id_product'=>$id);
-				$dt_cart = DB::table('cart')->select('id_product','qty')->where($where)->first();
-				$qty_cart = isset($dt_cart) ? (int)$dt_cart->qty : 0;
-			}
+
+            $qty_cart = 0;
+            if ((int)$id_member > 0) {
+                $where = array();
+                $where = array('cart.id_member' => $id_member, 'id_product' => $id);
+                $dt_cart = DB::table('cart')->select('id_product', 'qty')->where($where)->first();
+                $qty_cart = isset($dt_cart) ? (int)$dt_cart->qty : 0;
+            }
 
             if ((int)count($limit_product) > 0) {
                 $limit_beli = (int)$limit_product[0]->limit_pembelian;
@@ -547,7 +547,7 @@ class ProductController extends Controller
             unset($data->created_at);
             unset($data->updated_at);
             unset($data->deleted_at);
-			
+
             $data->id_pricelist = isset($_pricelist['id_pricelist'][$data->id_product]) ? $_pricelist['id_pricelist'][$data->id_product] : 0;
             $data->harga_member = isset($_pricelist['harga_member'][$data->id_product]) ? $_pricelist['harga_member'][$data->id_product] : 0;
             $data->harga_konsumen = isset($_pricelist['harga_konsumen'][$data->id_product]) ? $_pricelist['harga_konsumen'][$data->id_product] : 0;
@@ -568,9 +568,9 @@ class ProductController extends Controller
                 Helper::share_product((int)$id_member_share, $id_product, 1);
             }
             $result = array(
-                'err_code'  => '00',
-                'err_msg'   => 'ok',
-                'data'      => $data
+                'err_code' => '00',
+                'err_msg' => 'ok',
+                'data' => $data
             );
         }
         return response($result);
@@ -585,9 +585,9 @@ class ProductController extends Controller
         $result = array();
         if ($id_product <= 0 && (int)$request->id <= 0) {
             $result = array(
-                'err_code'  => '06',
-                'err_msg'   => 'id_product required',
-                'data'      => null
+                'err_code' => '06',
+                'err_msg' => 'id_product required',
+                'data' => null
             );
             return response($result);
             return false;
@@ -616,18 +616,18 @@ class ProductController extends Controller
                 $_extension = array('png', 'jpg', 'jpeg');
                 if ($fileSize > 2099200) { // satuan bytes
                     $result = array(
-                        'err_code'  => '07',
-                        'err_msg'   => 'file size over 2048',
-                        'data'      => $fileSize
+                        'err_code' => '07',
+                        'err_msg' => 'file size over 2048',
+                        'data' => $fileSize
                     );
                     return response($result);
                     return false;
                 }
                 if (!in_array($extension, $_extension)) {
                     $result = array(
-                        'err_code'  => '07',
-                        'err_msg'   => 'file extension not valid',
-                        'data'      => null
+                        'err_code' => '07',
+                        'err_msg' => 'file extension not valid',
+                        'data' => null
                     );
                     return response($result);
                     return false;
@@ -637,15 +637,15 @@ class ProductController extends Controller
             }
             DB::table('product_img')->insert($data);
             $result = array(
-                'err_code'  => '00',
-                'err_msg'   => 'ok',
-                'data'      => $data
+                'err_code' => '00',
+                'err_msg' => 'ok',
+                'data' => $data
             );
         } else {
             $result = array(
-                'err_code'  => '06',
-                'err_msg'   => 'img required',
-                'data'      => null
+                'err_code' => '06',
+                'err_msg' => 'img required',
+                'data' => null
             );
         }
         return response($result);
@@ -659,9 +659,9 @@ class ProductController extends Controller
         DB::table('product_img')->where('id', $id)->update($data);
         $result = array();
         $result = array(
-            'err_code'  => '00',
-            'err_msg'   => 'ok',
-            'data'      => null
+            'err_code' => '00',
+            'err_msg' => 'ok',
+            'data' => null
         );
         return response($result);
     }
@@ -682,24 +682,24 @@ class ProductController extends Controller
         $_data = DB::table('product_img')->select('id', 'id_product', 'img')
             ->where($where)->offset($offset)->limit($per_page)->orderBy($sort_column, $sort_order)->get();
         $result = array(
-            'err_code'      => '04',
-            'err_msg'       => 'data not found',
-            'total_data'    => $count,
-            'data'          => null
+            'err_code' => '04',
+            'err_msg' => 'data not found',
+            'total_data' => $count,
+            'data' => null
         );
         if ($count > 0) {
             foreach ($_data as $d) {
                 $path_img = null;
-                $path_img  = !empty($d->img) ? env('APP_URL') . '/api_cni/uploads/products/' . $d->img : null;
+                $path_img = !empty($d->img) ? env('APP_URL') . '/api_cni/uploads/products/' . $d->img : null;
                 unset($d->img);
                 $d->img = $path_img;
                 $data[] = $d;
             }
             $result = array(
-                'err_code'      => '00',
-                'err_msg'          => 'ok',
-                'total_data'    => $count,
-                'data'          => $data
+                'err_code' => '00',
+                'err_msg' => 'ok',
+                'total_data' => $count,
+                'data' => $data
             );
         }
         return response($result);
@@ -716,7 +716,7 @@ class ProductController extends Controller
         $result = array();
         $sql = '';
         $sql = "select id_pricelist, start_date, end_date from pricelist where id_product=$id_product and deleted_at is null and (
-            (start_date::timestamp >= '" . $start_date . "' and start_date::timestamp <= '" . $end_date . "') or 
+            (start_date::timestamp >= '" . $start_date . "' and start_date::timestamp <= '" . $end_date . "') or
             (end_date::timestamp >= '" . $start_date . "' and end_date::timestamp <= '" . $end_date . "') or
             (start_date::timestamp <= '" . $start_date . "' and end_date::timestamp >= '" . $end_date . "')
         )";
@@ -738,26 +738,26 @@ class ProductController extends Controller
                 $date_duplicate = implode(', ', $date_duplicate);
             }
             $result = array(
-                'err_code'  => '05',
-                'err_msg'   => 'Tanggal bentrok',
-                'data'      => $date_duplicate
+                'err_code' => '05',
+                'err_msg' => 'Tanggal bentrok',
+                'data' => $date_duplicate
             );
             return response($result);
             return false;
         }
         $data = array(
-            'id_product'   => (int)$id_product,
-            'start_date'    => $start_date,
-            'end_date'      => $end_date,
-            'pv'         => $request->has('pv') ? str_replace(',', '', $request->pv) : 0,
-            'rv'         => $request->has('rv') ? str_replace(',', '', $request->rv) : 0,
+            'id_product' => (int)$id_product,
+            'start_date' => $start_date,
+            'end_date' => $end_date,
+            'pv' => $request->has('pv') ? str_replace(',', '', $request->pv) : 0,
+            'rv' => $request->has('rv') ? str_replace(',', '', $request->rv) : 0,
             'harga_member' => $request->has('harga_member') ? str_replace(',', '', $request->harga_member) : 0,
             'harga_konsumen' => $request->has('harga_konsumen') ? str_replace(',', '', $request->harga_konsumen) : 0,
             'hm_non_ppn' => $request->has('hm_non_ppn') ? str_replace(',', '', $request->hm_non_ppn) : 0,
             'hk_non_ppn' => $request->has('hk_non_ppn') ? str_replace(',', '', $request->hk_non_ppn) : 0,
-            'ppn_hm'           => $request->has('ppn_hm') ? str_replace(',', '', $request->ppn_hm) : 0,
-            'ppn_hk'           => $request->has('ppn_hk') ? str_replace(',', '', $request->ppn_hk) : 0,
-            'status'    => 1
+            'ppn_hm' => $request->has('ppn_hm') ? str_replace(',', '', $request->ppn_hm) : 0,
+            'ppn_hk' => $request->has('ppn_hk') ? str_replace(',', '', $request->ppn_hk) : 0,
+            'status' => 1
         );
         if ($id > 0) {
             $data += array("updated_at" => $tgl, "updated_by" => $request->id_operator);
@@ -770,15 +770,15 @@ class ProductController extends Controller
         if ($id > 0) {
             $data += array('id_pricelist' => $id);
             $result = array(
-                'err_code'  => '00',
-                'err_msg'   => 'ok',
-                'data'      => $data
+                'err_code' => '00',
+                'err_msg' => 'ok',
+                'data' => $data
             );
         } else {
             $result = array(
-                'err_code'  => '05',
-                'err_msg'   => 'insert has problem',
-                'data'      => null
+                'err_code' => '05',
+                'err_msg' => 'insert has problem',
+                'data' => null
             );
         }
         return response($result);
@@ -792,9 +792,9 @@ class ProductController extends Controller
         DB::table('pricelist')->where('id_pricelist', $id)->update($data);
         $result = array();
         $result = array(
-            'err_code'  => '00',
-            'err_msg'   => 'ok',
-            'data'      => null
+            'err_code' => '00',
+            'err_msg' => 'ok',
+            'data' => null
         );
         return response($result);
     }
@@ -817,21 +817,21 @@ class ProductController extends Controller
             ->where($where)->offset($offset)->limit($per_page)->orderBy($sort_column, $sort_order)->get();
         $data = DB::table('product')->select('product_name')->where($where)->first();
         $result = array(
-            'err_code'      => '04',
-            'err_msg'       => 'data not found',
-            'total_data'    => $count,
-            'id_product'    => $request->id_product,
-            'product_name'    => $data->product_name,
-            'data'          => null
+            'err_code' => '04',
+            'err_msg' => 'data not found',
+            'total_data' => $count,
+            'id_product' => $request->id_product,
+            'product_name' => $data->product_name,
+            'data' => null
         );
         if ($count > 0) {
             $result = array(
-                'err_code'      => '00',
-                'err_msg'          => 'ok',
-                'total_data'    => $count,
-                'id_product'    => $request->id_product,
-                'product_name'    => $data->product_name,
-                'data'          => $_data
+                'err_code' => '00',
+                'err_msg' => 'ok',
+                'total_data' => $count,
+                'id_product' => $request->id_product,
+                'product_name' => $data->product_name,
+                'data' => $_data
             );
         }
         return response($result);
@@ -846,9 +846,9 @@ class ProductController extends Controller
         DB::table('product')->where('id_product', $id)->update($data);
         $result = array();
         $result = array(
-            'err_code'  => '00',
-            'err_msg'   => 'ok',
-            'data'      => null
+            'err_code' => '00',
+            'err_msg' => 'ok',
+            'data' => null
         );
         return response($result);
     }
@@ -862,9 +862,9 @@ class ProductController extends Controller
         DB::table('product')->where('id_product', $id)->update($data);
         $result = array();
         $result = array(
-            'err_code'  => '00',
-            'err_msg'   => 'ok',
-            'data'      => null
+            'err_code' => '00',
+            'err_msg' => 'ok',
+            'data' => null
         );
         return response($result);
     }
@@ -880,7 +880,7 @@ class ProductController extends Controller
         $result = array();
         $sql = '';
         $sql = "select id_lp, start_date, end_date from limit_pembelian where id_product=$id_product and deleted_at is null and (
-            (start_date::timestamp >= '" . $start_date . "' and start_date::timestamp <= '" . $end_date . "') or 
+            (start_date::timestamp >= '" . $start_date . "' and start_date::timestamp <= '" . $end_date . "') or
             (end_date::timestamp >= '" . $start_date . "' and end_date::timestamp <= '" . $end_date . "') or
             (start_date::timestamp <= '" . $start_date . "' and end_date::timestamp >= '" . $end_date . "')
         )";
@@ -902,18 +902,18 @@ class ProductController extends Controller
                 $date_duplicate = implode(', ', $date_duplicate);
             }
             $result = array(
-                'err_code'  => '05',
-                'err_msg'   => 'Tanggal bentrok',
-                'data'      => $date_duplicate
+                'err_code' => '05',
+                'err_msg' => 'Tanggal bentrok',
+                'data' => $date_duplicate
             );
             return response($result);
             return false;
         }
         $data = array(
-            'id_product'   => (int)$id_product,
-            'start_date'    => $start_date,
-            'end_date'      => $end_date,
-            'limit_pembelian'         => (int)$limit_pembelian
+            'id_product' => (int)$id_product,
+            'start_date' => $start_date,
+            'end_date' => $end_date,
+            'limit_pembelian' => (int)$limit_pembelian
         );
         if ($id > 0) {
             $data += array("updated_at" => $tgl, "updated_by" => $request->id_operator);
@@ -926,15 +926,15 @@ class ProductController extends Controller
         if ($id > 0) {
             $data += array('id_lp' => $id);
             $result = array(
-                'err_code'  => '00',
-                'err_msg'   => 'ok',
-                'data'      => $data
+                'err_code' => '00',
+                'err_msg' => 'ok',
+                'data' => $data
             );
         } else {
             $result = array(
-                'err_code'  => '05',
-                'err_msg'   => 'insert has problem',
-                'data'      => null
+                'err_code' => '05',
+                'err_msg' => 'insert has problem',
+                'data' => null
             );
         }
         return response($result);
@@ -948,9 +948,9 @@ class ProductController extends Controller
         DB::table('limit_pembelian')->where('id_lp', $id)->update($data);
         $result = array();
         $result = array(
-            'err_code'  => '00',
-            'err_msg'   => 'ok',
-            'data'      => null
+            'err_code' => '00',
+            'err_msg' => 'ok',
+            'data' => null
         );
         return response($result);
     }
@@ -973,23 +973,98 @@ class ProductController extends Controller
             ->where($where)->offset($offset)->limit($per_page)->orderBy($sort_column, $sort_order)->get();
         $data = DB::table('product')->select('product_name')->where($where)->first();
         $result = array(
-            'err_code'      => '04',
-            'err_msg'       => 'data not found',
-            'total_data'    => $count,
-            'id_product'    => $request->id_product,
-            'product_name'    => $data->product_name,
-            'data'          => null
+            'err_code' => '04',
+            'err_msg' => 'data not found',
+            'total_data' => $count,
+            'id_product' => $request->id_product,
+            'product_name' => $data->product_name,
+            'data' => null
         );
         if ($count > 0) {
             $result = array(
-                'err_code'      => '00',
-                'err_msg'          => 'ok',
-                'total_data'    => $count,
-                'id_product'    => $request->id_product,
-                'product_name'    => $data->product_name,
-                'data'          => $_data
+                'err_code' => '00',
+                'err_msg' => 'ok',
+                'total_data' => $count,
+                'id_product' => $request->id_product,
+                'product_name' => $data->product_name,
+                'data' => $_data
             );
         }
+        return response($result);
+    }
+
+    function cek_limit(Request $request)
+    {
+        $tgl = date('Y-m-d H:i:s');
+        $id_member = (int)$request->id_member > 0 ? $request->id_member : 0;
+        $list_item = json_decode($request->list_item);
+        $whereIn = [];
+        for ($i = 0; $i < count($list_item); $i++) {
+            $whereIn[] = $list_item[$i]->id_product;
+            $_whereIn = implode(', ', $whereIn);
+        }
+        if ($id_member <= 0) {
+            $result = array(
+                'err_code' => '02',
+                'err_msg' => 'id_member required',
+                'data' => null
+            );
+            return response($result);
+            return false;
+        }
+        if (count($whereIn) <= 0) {
+            $result = array(
+                'err_code' => '02',
+                'err_msg' => 'list_item required',
+                'data' => null
+            );
+            return response($result);
+            return false;
+        }
+        $dt_limit_beli = [];
+        $dt_min_beli = [];
+        $sudah_beli = [];
+        $data = [];
+        $sql = "select id_product, limit_pembelian, start_date, end_date from limit_pembelian
+            where id_product in (" . $_whereIn . ") and deleted_at is null and start_date::timestamp <= '" . $tgl . "' and end_date::timestamp >= '" . $tgl . "'";
+        $limit_pembelian = DB::select(DB::raw($sql));
+        if (!empty($limit_pembelian)) {
+            foreach ($limit_pembelian as $lp) {
+                $dt_limit_beli[$lp->id_product] = (int)$lp->limit_pembelian;
+                $from = $lp->start_date;
+                $to = $lp->end_date;
+                $sql_jml_beli = "select sum(jml) as jml_beli from transaksi_detail left join transaksi on transaksi_detail.id_trans = transaksi.id_transaksi where id_member =$id_member
+                                 and id_product=$lp->id_product and transaksi.status in(0,1,2,3,4,5) and and to_char(transaksi.created_at, 'YYYY-MM-DD') >= '" . $from . "' and to_char(transaksi.created_at, 'YYYY-MM-DD') <= '" . $to . "'";
+                $cek_jml_beli = DB::select(DB::raw($sql_jml_beli));
+                $sudah_beli[$lp->id_product] = (int)$cek_jml_beli->jml_beli;
+            }
+        }
+
+        $sql_min = "select id_product, min_pembelian from product where id_product in (" . $_whereIn . ") and deleted_at is null";
+        $min_beli = DB::select(DB::raw($sql_min));
+        if (!empty($min_beli)) {
+            foreach ($min_beli as $lp) {
+                $dt_min_beli[$lp->id_product] = (int)$lp->min_pembelian;
+            }
+        }
+        for ($i = 0; $i < count($list_item); $i++) {
+            $limit_pembelian = isset($dt_limit_beli[$list_item[$i]->id_product]) ? (int)$dt_limit_beli[$list_item[$i]->id_product] : 0;
+            $sudahBeli = isset($sudah_beli[$list_item[$i]->id_product]) ? (int)$sudah_beli[$list_item[$i]->id_product] : 0;
+            $sisa_beli = $limit_pembelian - $sudahBeli;
+            $data[] = array(
+                'id_product' => $list_item[$i]->id_product,
+                'jml' => $list_item[$i]->jml,
+                'limit_pembelian' => $limit_pembelian,
+                'min_pembelian' => isset($dt_min_beli[$list_item[$i]->id_product]) ? (int)$dt_min_beli[$list_item[$i]->id_product] : 0,
+                'sudah_beli' => $sudahBeli,
+                'is_available' => (int)$list_item[$i]->jml >= $sisa_beli ? 1 : 0
+            );
+        }
+        $result = array(
+            'err_code' => '00',
+            'err_msg' => 'ok',
+            'data' => $data
+        );
         return response($result);
     }
 
@@ -997,7 +1072,7 @@ class ProductController extends Controller
     {
         $tgl = date('Y-m-d H:i:s');
         $sql_pricelist = '';
-        $sql_pricelist = "select id_pricelist,id_product, harga_konsumen,harga_member from pricelist 
+        $sql_pricelist = "select id_pricelist,id_product, harga_konsumen,harga_member from pricelist
         where deleted_at is null and ((start_date::timestamp <= '" . $tgl . "' and end_date::timestamp >= '" . $tgl . "') or (start_date::timestamp >= '" . $tgl . "' and end_date::timestamp <= '" . $tgl . "'))";
         $pricelist_active = DB::select(DB::raw($sql_pricelist));
         $_pricelist = array();
@@ -1014,17 +1089,17 @@ class ProductController extends Controller
             }
         }
         $sql = "select product.id_product, id_pricelist, pricelist.harga_member, pricelist.harga_konsumen from product left join pricelist on pricelist.id_product = product.id_product
-             where product.deleted_at is null and pricelist.deleted_at is null and 
-            ((product.start_date::timestamp <= '" . $tgl . "' and product.end_date::timestamp >= '" . $tgl . "') or 
-            (product.start_date::timestamp >= '" . $tgl . "' and product.end_date::timestamp <= '" . $tgl . "')) and 
-            ((pricelist.start_date::timestamp <= '" . $tgl . "' and pricelist.end_date::timestamp >= '" . $tgl . "') or 
-            (pricelist.start_date::timestamp >= '" . $tgl . "' and pricelist.end_date::timestamp <= '" . $tgl . "')) 
+             where product.deleted_at is null and pricelist.deleted_at is null and
+            ((product.start_date::timestamp <= '" . $tgl . "' and product.end_date::timestamp >= '" . $tgl . "') or
+            (product.start_date::timestamp >= '" . $tgl . "' and product.end_date::timestamp <= '" . $tgl . "')) and
+            ((pricelist.start_date::timestamp <= '" . $tgl . "' and pricelist.end_date::timestamp >= '" . $tgl . "') or
+            (pricelist.start_date::timestamp >= '" . $tgl . "' and pricelist.end_date::timestamp <= '" . $tgl . "'))
             and pricelist.id_product in (" . $whereIn . ")";
         $pa = DB::select(DB::raw($sql));
         $result = array(
-            'err_code'  => '05',
-            'err_msg'   => 'Tanggal bentrok',
-            'data'      => $pa
+            'err_code' => '05',
+            'err_msg' => 'Tanggal bentrok',
+            'data' => $pa
         );
         return response($result);
     }

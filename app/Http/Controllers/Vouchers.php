@@ -207,8 +207,15 @@ class Vouchers extends Controller
 				$path_img = null;
 				$sisa = 0;
 				$is_limit = (int)$pa->is_limited;
+                $user_tertentu = (int)$pa->user_tertentu;
+                $cek_user_tertentu = 1;
+                if($user_tertentu > 0){
+                    $where = array('id_member' => $id_member, 'deleted_at' => null,'id_voucher'=>$pa->id_voucher);
+                    $member_voucher = DB::table('list_member_voucher')->select('id_member')->where($where)->first();
+                    $cek_user_tertentu = isset($member_voucher) && $member_voucher->id_member > 0  ? 1 : 0;
+                }
 				$sisa = $is_limit > 0 ? (int)$pa->sisa : 20000;
-				if (($pa->deleted_at == null || empty($pa->deleted_at)) && (int)$pa->is_publish == 1) {
+				if (($pa->deleted_at == null || empty($pa->deleted_at)) && (int)$pa->is_publish == 1  && (int)$cek_user_tertentu == 1) {
 					if (!in_array($pa->id_voucher, $voucher_used) && (int)$sisa > 0) {
 						$path_img  = !empty($pa->img) ? env('APP_URL') . '/api_cni/uploads/vouchers/' . $pa->img : null;
 						$is_available = 0;
@@ -332,7 +339,7 @@ class Vouchers extends Controller
 			}
 		}
 
-		if (!empty($whereIn)) $sql .= " or (vouchers.deleted_at is null and vouchers.id_voucher in (" . $whereIn . "))";
+		if (!empty($whereIn)) $sql .= " and (vouchers.deleted_at is null and vouchers.id_voucher in (" . $whereIn . "))";
 
 		$list_vouchers = DB::select(DB::raw($sql));
 		$result = array();
