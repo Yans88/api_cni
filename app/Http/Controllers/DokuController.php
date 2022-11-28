@@ -260,11 +260,11 @@ class DokuController extends Controller
                 $dt_insert_notif = array();
                 $dt_insert_notif = array(
                     'id' => $id_transaksi,
-                    'id_member' => $data->id_member,
+                    'id_member' => $id_member,
                     'content' => 'Pembayaran anda sudah kami terima dan pesanan anda akan kami proses segera',
                     'type' => 1,
                     'created_at' => $tgl,
-                    'created_by' => $data->id_member
+                    'created_by' => $id_member
                 );
                 $id_notif = DB::table('history_notif')->insertGetId($dt_insert_notif, "id_notif");
                 $data_fcm = array(
@@ -275,7 +275,7 @@ class DokuController extends Controller
                     'message' => 'Pembayaran anda sudah kami terima dan pesanan anda akan kami proses segera',
                     'type' => '1'
                 );
-                Helper::send_fcm($data->id_member, $data_fcm, $notif_fcm);
+                Helper::send_fcm($id_member, $data_fcm, $notif_fcm);
 
                 echo 'Transaction #' . $id_transaksi . ': ' . $status;
                 echo '<script>console.log(\'RECEIVEOK\');</script>';
