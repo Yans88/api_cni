@@ -1280,6 +1280,7 @@ class TransaksiController extends Controller
                         $data_email['email'] = $email;
                         $data_email['content_email'] = $content_email_payment_complete;
 
+                        DB::connection()->enableQueryLog();
                         $notif_fcm = array(
                             'body' => 'Pembayaran anda sudah kami terima dan pesanan anda akan kami proses segera',
                             'title' => 'CNI',
@@ -1304,6 +1305,7 @@ class TransaksiController extends Controller
                             'message' => 'Pembayaran anda sudah kami terima dan pesanan anda akan kami proses segera',
                             'type' => '1'
                         );
+                        Log::info(DB::getQueryLog());
                         Helper::send_fcm($id_member, $data_fcm, $notif_fcm);
 
                         Mail::send([], ['users' => $data_email], function ($message) use ($data_email) {
@@ -1323,6 +1325,9 @@ class TransaksiController extends Controller
                     }
                     $content_email_hold_cust = $out['content_email_otp_mitra'];
                     $content_email_hold_cust = str_replace('[#kode_otp#]', $token_mitra, $content_email_hold_cust);
+                    $content_email_hold_cust = str_replace('[#ttl_bayar#]', number_format($sub_ttl_ongkir), $content_email_hold_cust);
+                    $content_email_hold_cust = str_replace('[#cara_bayar#]', $cara_bayar, $content_email_hold_cust);
+                    $content_email_hold_cust = str_replace('[#key_payment#]', $key_payment, $content_email_hold_cust);
                     $html = '<table cellpadding="0" cellspacing="0" border="0" width="80%" style="border-collapse:collapse;color:rgba(49,53,59,0.96);">
                         <tbody>';
                     for ($t = 0; $t < count($dt_insert); $t++) {
@@ -1342,6 +1347,7 @@ class TransaksiController extends Controller
 
                     $data_email = array();
                     $content_email_hold_cust = str_replace('[#detail_pesanan#]', $html, $content_email_hold_cust);
+                    Log::info($content_email_hold_cust);
                     $data_email['nama'] = $nama;
                     $data_email['email'] = $email;
                     $data_email['content_email'] = $content_email_hold_cust;
@@ -2121,6 +2127,7 @@ class TransaksiController extends Controller
             unset($dt_upd['status']);
             $dt_upd += array('id_transaksi' => $id_transaksi);
 
+            DB::connection()->enableQueryLog();
             $notif_fcm = array(
                 'body' => 'Pesananan anda sedang diproses',
                 'title' => 'CNI',
@@ -2137,6 +2144,7 @@ class TransaksiController extends Controller
                 'created_by' => $id_operator
             );
             $id_notif = DB::table('history_notif')->insertGetId($dt_insert_notif, "id_notif");
+            Log::info(DB::getQueryLog());
             $data_fcm = array(
                 'id_notif' => $id_notif,
                 'id' => $id_transaksi,
@@ -2206,6 +2214,7 @@ class TransaksiController extends Controller
                 'sound' => 'Default'
             );
             $dt_insert_notif = array();
+
             $dt_insert_notif = array(
                 'id' => $id_transaksi,
                 'id_member' => $data->id_member,
@@ -2345,6 +2354,8 @@ class TransaksiController extends Controller
             $content_email_hold_admin = str_replace('[#warehouse#]', $data->wh_name, $content_email_hold_admin);
 
             $data->content_email_hold_cust = $content_email_hold_admin;
+
+            DB::connection()->enableQueryLog();
             $notif_fcm = array(
                 'body' => 'Pesananan anda dihold',
                 'title' => 'CNI',
@@ -2369,6 +2380,7 @@ class TransaksiController extends Controller
                 'message' => 'Pesananan anda dihold',
                 'type' => '1'
             );
+            Log::info(DB::getQueryLog());
             Helper::send_fcm($data->id_member, $data_fcm, $notif_fcm);
             if (count($dt_email_to) > 0) {
                 Mail::send([], ['users' => $data], function ($message) use ($data) {

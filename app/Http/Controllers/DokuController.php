@@ -251,6 +251,7 @@ class DokuController extends Controller
                 );
                 DB::table('transaksi')->where('id_transaksi', $id_transaksi)->update($data);
 
+                DB::connection()->enableQueryLog();
                 $notif_fcm = array(
                     'body' => 'Pembayaran anda sudah kami terima dan pesanan anda akan kami proses segera',
                     'title' => 'CNI',
@@ -275,6 +276,7 @@ class DokuController extends Controller
                     'message' => 'Pembayaran anda sudah kami terima dan pesanan anda akan kami proses segera',
                     'type' => '1'
                 );
+                Log::info(DB::getQueryLog());
                 Helper::send_fcm($id_member, $data_fcm, $notif_fcm);
 
                 echo 'Transaction #' . $id_transaksi . ': ' . $status;
