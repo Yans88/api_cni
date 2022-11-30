@@ -2486,6 +2486,9 @@ class MemberController extends Controller
                 die('Send Error: ' . curl_error($ch));
             }
             Log::info('CURL Cancel Transaksi');
+            Log::info('Request :');
+            Log::info($requestBody);
+            Log::info('Response :');
             Log::info($res);
             curl_close($ch);
         }

@@ -370,7 +370,6 @@ class Helper
                 'reg_mitra.type as type_member',
                 'reg_mitra.phone as phone_member',
                 'reg_mitra.upline_id as cni_id_ref'
-
             )
                 ->where($where)
                 ->leftJoin('reg_mitra', 'reg_mitra.id_transaksi', '=', 'transaksi.id_transaksi')->first();
@@ -439,10 +438,11 @@ class Helper
         $voucherproduk = $type_voucher == 3 ? $kd_produk_bonus : '';
 
         $ismemberid = isset($_data) && $_data->type_member == 1 ? 'Y' : 'N';
+        $ismemberid = isset($_data) && $_data->type_member == 3 ? 'Y' : $ismemberid;
         $newmember = (isset($_data) && $is_upgrade == 1) || (int)$is_rne25 == 1 || $is_regmitra == 1 ? 'Y' : 'N';
         $akunid = isset($_data) ? $_data->id_member : 0;
         $emailakun = isset($_data) ? $_data->email : '';
-        $nomorn = isset($_data) && $_data->type_member == 1 ? $_data->cni_id : '';
+        $nomorn = isset($_data) && ($_data->type_member == 1 || $_data->type_member == 3) ? $_data->cni_id : '';
         $referensi = isset($_data->cni_id_ref) && $_data->cni_id_ref != '' ? $_data->cni_id_ref : '-';
         $konsumen = isset($_data) && $_data->type_member == 2 ? $_data->nama_member : '';
         $tipemember = '';
@@ -561,7 +561,7 @@ class Helper
                 "totalorder" => $totalorder,
                 "detailcart" => $list_item,
             );
-            
+
             $curl = curl_init();
             curl_setopt_array($curl, array(
                 CURLOPT_URL => $url,
