@@ -5,8 +5,6 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\Log;
 
 class SimpatikController extends Controller
 {
@@ -50,10 +48,10 @@ class SimpatikController extends Controller
             $_data = DB::table('simpatik')->select('simpatik.*', 'members.nama', 'members.cni_id', 'members.phone', 'city.city_name as nama_kota_kecelakaan')->where($where)->leftJoin('members', 'members.id_member', '=', 'simpatik.id_member')->leftJoin('city', 'city.id_city', '=', 'simpatik.kota_kecelakaan')->offset($offset)->limit($per_page)->orderBy($sort_column, $sort_order)->get();
         }
         $result = array(
-            'err_code'      => '04',
-            'err_msg'       => 'data not found',
-            'total_data'    => $count,
-            'data'          => null
+            'err_code' => '04',
+            'err_msg' => 'data not found',
+            'total_data' => $count,
+            'data' => null
         );
         if ($count > 0) {
             foreach ($_data as $d) {
@@ -61,10 +59,10 @@ class SimpatikController extends Controller
                 $data[] = $d;
             }
             $result = array(
-                'err_code'      => '00',
-                'err_msg'          => 'ok',
-                'total_data'    => $count,
-                'data'          => $data
+                'err_code' => '00',
+                'err_msg' => 'ok',
+                'total_data' => $count,
+                'data' => $data
             );
         }
         return response($result);
@@ -96,39 +94,39 @@ class SimpatikController extends Controller
         $no_hp_dokter = $request->file("no_hp_dokter");
         if ((int)$id_member <= 0) {
             $result = array(
-                'err_code'  => '06',
-                'err_msg'   => 'id_member is required',
-                'data'      => null
+                'err_code' => '06',
+                'err_msg' => 'id_member is required',
+                'data' => null
             );
             return response($result);
             return false;
         }
         if ((int)$is_agree <= 0) {
             $result = array(
-                'err_code'  => '06',
-                'err_msg'   => 'is_agree must be checked',
-                'data'      => null
+                'err_code' => '06',
+                'err_msg' => 'is_agree must be checked',
+                'data' => null
             );
             return response($result);
             return false;
         }
 
         $data = array(
-            'id_member'                         => $id_member,
-            'kota_kecelakaan'                     => $kota_kecelakaan,
-            'tgl_kecelakaan'                     => $tgl_kecelakaan,
-            'kat_santunan'                         => $kat_santunan,
-            'lama_rawat_inap'                     => $lama_rawat_inap,
-            'luka_dialami'                         => $luka_dialami,
-            'penyebab_kecelakaan'                 => $penyebab_kecelakaan,
-            'pernah_kecelakaan_sebelumnya'         => $pernah_kecelakaan_sebelumnya,
-            'tgl_pernah_kecelakaan_sebelumnya'     => $tgl_pernah_kecelakaan_sebelumnya,
-            'berdampak_cacat'                     => $berdampak_cacat,
-            'rincian_penyebabnya'                 => $rincian_penyebabnya,
-            'meninggal_rincian_penyebabnya'     => $meninggal_rincian_penyebabnya,
-            'is_agree'                            => $is_agree,
-            "created_at"                         => $tgl,
-            "status"                             => 1,
+            'id_member' => $id_member,
+            'kota_kecelakaan' => $kota_kecelakaan,
+            'tgl_kecelakaan' => $tgl_kecelakaan,
+            'kat_santunan' => $kat_santunan,
+            'lama_rawat_inap' => $lama_rawat_inap,
+            'luka_dialami' => $luka_dialami,
+            'penyebab_kecelakaan' => $penyebab_kecelakaan,
+            'pernah_kecelakaan_sebelumnya' => $pernah_kecelakaan_sebelumnya,
+            'tgl_pernah_kecelakaan_sebelumnya' => $tgl_pernah_kecelakaan_sebelumnya,
+            'berdampak_cacat' => $berdampak_cacat,
+            'rincian_penyebabnya' => $rincian_penyebabnya,
+            'meninggal_rincian_penyebabnya' => $meninggal_rincian_penyebabnya,
+            'is_agree' => $is_agree,
+            "created_at" => $tgl,
+            "status" => 1,
         );
 
         if (!empty($nama_dokter)) {
@@ -144,9 +142,9 @@ class SimpatikController extends Controller
             $_extension = array('png', 'jpg', 'jpeg');
             if ($fileSize > 2099200) { // satuan bytes
                 $result = array(
-                    'err_code'  => '07',
-                    'err_msg'   => 'file size over 2048',
-                    'data'      => $fileSize
+                    'err_code' => '07',
+                    'err_msg' => 'file size over 2048',
+                    'data' => $fileSize
                 );
                 return response($result);
                 return false;
@@ -176,9 +174,9 @@ class SimpatikController extends Controller
             $_extension = array('png', 'jpg', 'jpeg');
             if ($fileSize > 2099200) { // satuan bytes
                 $result = array(
-                    'err_code'  => '07',
-                    'err_msg'   => 'file size over 2048',
-                    'data'      => $fileSize
+                    'err_code' => '07',
+                    'err_msg' => 'file size over 2048',
+                    'data' => $fileSize
                 );
                 return response($result);
                 return false;
@@ -199,9 +197,9 @@ class SimpatikController extends Controller
             $_extension = array('png', 'jpg', 'jpeg');
             if ($fileSize > 2099200) { // satuan bytes
                 $result = array(
-                    'err_code'  => '07',
-                    'err_msg'   => 'file size over 2048',
-                    'data'      => $fileSize
+                    'err_code' => '07',
+                    'err_msg' => 'file size over 2048',
+                    'data' => $fileSize
                 );
                 return response($result);
                 return false;
@@ -213,15 +211,15 @@ class SimpatikController extends Controller
         $result = array();
         if ($id > 0) {
             $result = array(
-                'err_code'  => '00',
-                'err_msg'   => 'ok',
-                'data'      => $data
+                'err_code' => '00',
+                'err_msg' => 'ok',
+                'data' => $data
             );
         } else {
             $result = array(
-                'err_code'  => '05',
-                'err_msg'   => 'insert has problem',
-                'data'      => null
+                'err_code' => '05',
+                'err_msg' => 'insert has problem',
+                'data' => null
             );
         }
         return response($result);
@@ -235,15 +233,15 @@ class SimpatikController extends Controller
         $where = array('simpatik.id_member' => $id_member);
         $_data = DB::table('simpatik')->select('simpatik.*', 'members.nama', 'members.cni_id', 'city.city_name as nama_kota_kecelakaan')->where($where)->leftJoin('members', 'members.id_member', '=', 'simpatik.id_member')->leftJoin('city', 'city.id_city', '=', 'simpatik.kota_kecelakaan')->get();
         $result = array(
-            'err_code'  => '04',
-            'err_msg'   => 'data not found',
-            'data'      => null
+            'err_code' => '04',
+            'err_msg' => 'data not found',
+            'data' => null
         );
         if (!empty($_data)) {
             $result = array(
-                'err_code'      => '00',
-                'err_msg'       => 'ok',
-                'data'          => $_data
+                'err_code' => '00',
+                'err_msg' => 'ok',
+                'data' => $_data
             );
         }
         return response($result);
@@ -257,9 +255,9 @@ class SimpatikController extends Controller
         $where = array('simpatik.id' => $id);
         $_data = DB::table('simpatik')->select('simpatik.*', 'members.nama', 'members.cni_id', 'members.phone', 'city.city_name as nama_kota_kecelakaan')->where($where)->leftJoin('members', 'members.id_member', '=', 'simpatik.id_member')->leftJoin('city', 'city.id_city', '=', 'simpatik.kota_kecelakaan')->first();
         $result = array(
-            'err_code'      => '00',
-            'err_msg'       => 'ok',
-            'data'          => $_data
+            'err_code' => '00',
+            'err_msg' => 'ok',
+            'data' => $_data
         );
         return response($result);
     }
@@ -272,30 +270,30 @@ class SimpatikController extends Controller
         $id = (int)$request->id > 0 ? (int)$request->id : 0;
         $status = (int)$request->status > 0 ? (int)$request->status : 0;
         $id_operator = (int)$request->id_operator > 0 ? (int)$request->id_operator : 0;
-        $keterangan = !empty($request->keterangan)  ? $request->keterangan : '-';
+        $keterangan = !empty($request->keterangan) ? $request->keterangan : '-';
         $data_upd = array(
-            'status'        => $status,
-            'keterangan'    => $keterangan,
+            'status' => $status,
+            'keterangan' => $keterangan,
         );
         if ($status == 2) {
             $data_upd += array(
-                'received_date'    => $tgl,
-                'received_by'    => $id_operator,
+                'received_date' => $tgl,
+                'received_by' => $id_operator,
             );
         }
         if ($status == 3 || $status == 5) {
             $data_upd += array(
-                'appr_reject_date'    => $tgl,
-                'appr_reject_by'    => $id_operator,
+                'appr_reject_date' => $tgl,
+                'appr_reject_by' => $id_operator,
             );
         }
         $where = array('simpatik.id' => $id);
         DB::table('simpatik')->where(array("id" => $id))->update($data_upd);
         $_data = DB::table('simpatik')->select('simpatik.*', 'members.nama', 'members.cni_id')->where($where)->leftJoin('members', 'members.id_member', '=', 'simpatik.id_member')->first();
         $result = array(
-            'err_code'      => '00',
-            'err_msg'       => 'ok',
-            'data'          => $_data
+            'err_code' => '00',
+            'err_msg' => 'ok',
+            'data' => $_data
         );
         return response($result);
     }
@@ -310,9 +308,9 @@ class SimpatikController extends Controller
         $status = (int)$request->status > 0 ? (int)$request->status : 4;
         $id_operator = (int)$request->id_operator > 0 ? (int)$request->id_operator : 0;
         $data_upd = array(
-            'status'                => $status,
-            'bukti_transfer_date'    => $tgl,
-            'bukti_transfer_by'        => $id_operator,
+            'status' => $status,
+            'bukti_transfer_date' => $tgl,
+            'bukti_transfer_by' => $id_operator,
         );
         $bukti_transfer = $request->file("bukti_transfer");
         if (!empty($bukti_transfer)) {
@@ -328,18 +326,18 @@ class SimpatikController extends Controller
             $_extension = array('png', 'jpg', 'jpeg');
             if ($fileSize > 2099200) { // satuan bytes
                 $result = array(
-                    'err_code'  => '07',
-                    'err_msg'   => 'file size over 2048',
-                    'data'      => $fileSize
+                    'err_code' => '07',
+                    'err_msg' => 'file size over 2048',
+                    'data' => $fileSize
                 );
                 return response($result);
                 return false;
             }
             if (!in_array($extension, $_extension)) {
                 $result = array(
-                    'err_code'  => '07',
-                    'err_msg'   => 'file extension not valid',
-                    'data'      => null
+                    'err_code' => '07',
+                    'err_msg' => 'file extension not valid',
+                    'data' => null
                 );
                 return response($result);
                 return false;
@@ -351,9 +349,9 @@ class SimpatikController extends Controller
         DB::table('simpatik')->where(array("id" => $id, "status" => 3))->update($data_upd);
         $_data = DB::table('simpatik')->select('simpatik.*', 'members.nama', 'members.cni_id')->where($where)->leftJoin('members', 'members.id_member', '=', 'simpatik.id_member')->first();
         $result = array(
-            'err_code'      => '00',
-            'err_msg'       => 'ok',
-            'data'          => $_data,
+            'err_code' => '00',
+            'err_msg' => 'ok',
+            'data' => $_data,
         );
         return response($result);
     }

@@ -56,12 +56,12 @@ class KecController extends Controller
             $city = $data_city->city_name;
         }
         $result = array(
-            'err_code'      => '04',
-            'err_msg'       => 'data not found',
-            'total_data'    => $count,
-            'provinsi'      => $provinsi,
-            'city'          => $city,
-            'data'          => null
+            'err_code' => '04',
+            'err_msg' => 'data not found',
+            'total_data' => $count,
+            'provinsi' => $provinsi,
+            'city' => $city,
+            'data' => null
         );
         if ($count > 0) {
             $provinsi = $_data[0]->provinsi_name;
@@ -76,12 +76,12 @@ class KecController extends Controller
                 $data[] = $d;
             }
             $result = array(
-                'err_code'      => '00',
-                'err_msg'       => 'ok',
-                'total_data'    => $count,
-                'provinsi'      => $provinsi,
-                'city'          => $city,
-                'data'          => $data
+                'err_code' => '00',
+                'err_msg' => 'ok',
+                'total_data' => $count,
+                'provinsi' => $provinsi,
+                'city' => $city,
+                'data' => $data
             );
         }
         return response($result);
@@ -95,15 +95,15 @@ class KecController extends Controller
         $data = array(
             'kec_name' => $request->kec_name,
             'id_kec_cni' => (int)$request->id_kec_cni,
-            'kode_jne'      => strtoupper($request->kode_jne),
-            'kode_lp'      => strtoupper($request->kode_lp)
+            'kode_jne' => strtoupper($request->kode_jne),
+            'kode_lp' => strtoupper($request->kode_lp)
         );
         if ($id > 0) {
             $data += array("updated_at" => $tgl, "updated_by" => $request->id_operator);
             DB::table('kecamatan')->where('id_kecamatan', $id)->update($data);
         } else {
             $data += array(
-                "id_city"    => (int)$request->id_city,
+                "id_city" => (int)$request->id_city,
                 "created_at" => $tgl,
                 "created_by" => $request->id_operator
             );
@@ -113,15 +113,15 @@ class KecController extends Controller
         if ($id > 0) {
             $data += array('id_kecamatan' => $id);
             $result = array(
-                'err_code'  => '00',
-                'err_msg'   => 'ok',
-                'data'      => $data
+                'err_code' => '00',
+                'err_msg' => 'ok',
+                'data' => $data
             );
         } else {
             $result = array(
-                'err_code'  => '05',
-                'err_msg'   => 'insert has problem',
-                'data'      => null
+                'err_code' => '05',
+                'err_msg' => 'insert has problem',
+                'data' => null
             );
         }
         return response($result);
@@ -135,9 +135,9 @@ class KecController extends Controller
         DB::table('kecamatan')->where('id_kecamatan', $id)->update($data);
         $result = array();
         $result = array(
-            'err_code'  => '00',
-            'err_msg'   => 'ok',
-            'data'      => null
+            'err_code' => '00',
+            'err_msg' => 'ok',
+            'data' => null
         );
         return response($result);
     }

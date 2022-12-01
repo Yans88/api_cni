@@ -6,7 +6,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\Log;
 
 class MitraController extends Controller
 {
@@ -46,15 +45,15 @@ class MitraController extends Controller
             $_data = DB::table('reg_mitra')->where($where)->offset($offset)->limit($per_page)->orderBy($sort_column, $sort_order)->get();
         }
         $result = array(
-            'err_code'      => '04',
-            'err_msg'       => 'data not found',
-            'total_data'    => $count,
-            'data'          => null
+            'err_code' => '04',
+            'err_msg' => 'data not found',
+            'total_data' => $count,
+            'data' => null
         );
         if ($count > 0) {
             foreach ($_data as $d) {
                 $path_img = null;
-                $path_img  = !empty($d->photo_identitas) ? env('APP_URL') . '/api_cni/uploads/members/' . $d->photo_identitas : null;
+                $path_img = !empty($d->photo_identitas) ? env('APP_URL') . '/api_cni/uploads/members/' . $d->photo_identitas : null;
                 unset($d->created_by);
                 unset($d->updated_by);
                 unset($d->deleted_by);
@@ -65,10 +64,10 @@ class MitraController extends Controller
                 $data[] = $d;
             }
             $result = array(
-                'err_code'      => '00',
-                'err_msg'          => 'ok',
-                'total_data'    => $count,
-                'data'          => $data
+                'err_code' => '00',
+                'err_msg' => 'ok',
+                'total_data' => $count,
+                'data' => $data
             );
         }
         return response($result);
@@ -89,27 +88,27 @@ class MitraController extends Controller
         $path_img = $request->file("photo_identitas");
         if ((int)$request->id_member_reg <= 0) {
             $result = array(
-                'err_code'  => '06',
-                'err_msg'   => 'id_member_reg is required',
-                'data'      => null
+                'err_code' => '06',
+                'err_msg' => 'id_member_reg is required',
+                'data' => null
             );
             return response($result);
             return false;
         }
         if (empty($email)) {
             $result = array(
-                'err_code'  => '06',
-                'err_msg'   => 'email is required',
-                'data'      => null
+                'err_code' => '06',
+                'err_msg' => 'email is required',
+                'data' => null
             );
             return response($result);
             return false;
         }
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $result = array(
-                'err_code'    => '06',
-                'err_msg'    => 'email invalid format',
-                'data'      => null
+                'err_code' => '06',
+                'err_msg' => 'email invalid format',
+                'data' => null
             );
             return response($result);
             return false;
@@ -117,9 +116,9 @@ class MitraController extends Controller
 
         if (empty($phone)) {
             $result = array(
-                'err_code'  => '06',
-                'err_msg'   => 'phone is required',
-                'data'      => null
+                'err_code' => '06',
+                'err_msg' => 'phone is required',
+                'data' => null
             );
             return response($result);
             return false;
@@ -132,9 +131,9 @@ class MitraController extends Controller
         $res_id = !empty($dt_validate) ? $dt_validate->id_member : 0;
         if ((int)$res_id > 0) {
             $result = array(
-                'err_code'  => '06',
-                'err_msg'   => 'Email already exist',
-                'data'      => null
+                'err_code' => '06',
+                'err_msg' => 'Email already exist',
+                'data' => null
             );
             return response($result);
             return false;
@@ -147,9 +146,9 @@ class MitraController extends Controller
         $res_id = !empty($dt_validate) ? $dt_validate->id_reg_mitra : 0;
         if ((int)$res_id > 0 && $res_id != $id) {
             $result = array(
-                'err_code'  => '06',
-                'err_msg'   => 'Email already exist',
-                'data'      => null
+                'err_code' => '06',
+                'err_msg' => 'Email already exist',
+                'data' => null
             );
             return response($result);
             return false;
@@ -162,9 +161,9 @@ class MitraController extends Controller
         $res_id = !empty($dt_validate) ? $dt_validate->id_member : 0;
         if ((int)$res_id > 0) {
             $result = array(
-                'err_code'  => '06',
-                'err_msg'   => 'Phone already exist',
-                'data'      => null
+                'err_code' => '06',
+                'err_msg' => 'Phone already exist',
+                'data' => null
             );
             return response($result);
             return false;
@@ -177,9 +176,9 @@ class MitraController extends Controller
         $res_id = !empty($dt_validate) ? $dt_validate->id_reg_mitra : 0;
         if ((int)$res_id > 0 && $res_id != $id) {
             $result = array(
-                'err_code'  => '06',
-                'err_msg'   => 'Phone already exist',
-                'data'      => null
+                'err_code' => '06',
+                'err_msg' => 'Phone already exist',
+                'data' => null
             );
             return response($result);
             return false;
@@ -187,28 +186,28 @@ class MitraController extends Controller
 
         $data = array(
             'id_member_reg' => $request->id_member_reg,
-            'phone'         => $phone,
-            'email'         => strtolower($email),
-            'nama'             => $request->nama,
-            'tempat_lahir'     => $request->tempat_lahir,
-            'tgl_lahir'     => !empty($request->tgl_lahir) ? date("Y-m-d", strtotime($request->tgl_lahir)) : null,
-            'type'             => $request->type,
-            'no_identitas'     => $request->no_identitas,
-            'upline_id'     => $request->upline_id,
-            'nama_upline'     => $request->nama_upline,
-            'sponsor_id'     => $request->sponsor_id,
-            'nama_sponsor'     => $request->nama_sponsor,
-            'status'        => 0,
+            'phone' => $phone,
+            'email' => strtolower($email),
+            'nama' => $request->nama,
+            'tempat_lahir' => $request->tempat_lahir,
+            'tgl_lahir' => !empty($request->tgl_lahir) ? date("Y-m-d", strtotime($request->tgl_lahir)) : null,
+            'type' => $request->type,
+            'no_identitas' => $request->no_identitas,
+            'upline_id' => $request->upline_id,
+            'nama_upline' => $request->nama_upline,
+            'sponsor_id' => $request->sponsor_id,
+            'nama_sponsor' => $request->nama_sponsor,
+            'status' => 0,
         );
         $data_alamat = array(
-            "label_alamat"      => "-",
-            "nama_penerima"     => $request->nama,
-            "phone_penerima"    => $phone,
-            "id_provinsi"       => (int)$request->id_provinsi,
-            "id_city"               => (int)$request->id_city,
-            "id_kec"            => (int)$request->id_kec,
-            "alamat"            => $request->alamat,
-            "kode_pos"          => $request->kode_pos
+            "label_alamat" => "-",
+            "nama_penerima" => $request->nama,
+            "phone_penerima" => $phone,
+            "id_provinsi" => (int)$request->id_provinsi,
+            "id_city" => (int)$request->id_city,
+            "id_kec" => (int)$request->id_kec,
+            "alamat" => $request->alamat,
+            "kode_pos" => $request->kode_pos
         );
         if (!empty($path_img)) {
             $nama = str_replace(' ', '', $request->nama);
@@ -223,18 +222,18 @@ class MitraController extends Controller
             $_extension = array('png', 'jpg', 'jpeg');
             if ($fileSize > 2099200) { // satuan bytes
                 $result = array(
-                    'err_code'  => '07',
-                    'err_msg'   => 'file size over 2048',
-                    'data'      => $fileSize
+                    'err_code' => '07',
+                    'err_msg' => 'file size over 2048',
+                    'data' => $fileSize
                 );
                 return response($result);
                 return false;
             }
             if (!in_array($extension, $_extension)) {
                 $result = array(
-                    'err_code'  => '07',
-                    'err_msg'   => 'file extension not valid',
-                    'data'      => null
+                    'err_code' => '07',
+                    'err_msg' => 'file extension not valid',
+                    'data' => null
                 );
                 return response($result);
                 return false;
@@ -262,15 +261,15 @@ class MitraController extends Controller
             $data += array('id_reg_mitra' => $id);
             $data += array('id_address' => $id_address);
             $result = array(
-                'err_code'  => '00',
-                'err_msg'   => 'ok',
-                'data'      => $data
+                'err_code' => '00',
+                'err_msg' => 'ok',
+                'data' => $data
             );
         } else {
             $result = array(
-                'err_code'  => '05',
-                'err_msg'   => 'insert has problem',
-                'data'      => null
+                'err_code' => '05',
+                'err_msg' => 'insert has problem',
+                'data' => null
             );
         }
         return response($result);
@@ -286,15 +285,15 @@ class MitraController extends Controller
         if ($status == 8) $where += array("status" => $status);
         $_data = DB::table('reg_mitra')->where($where)->orderBy('id_reg_mitra::integer', 'DESC')->get();
         $result = array(
-            'err_code'  => '04',
-            'err_msg'   => 'data not found',
-            'data'      => null
+            'err_code' => '04',
+            'err_msg' => 'data not found',
+            'data' => null
         );
         if (!empty($_data)) {
             $result = array(
-                'err_code'      => '00',
-                'err_msg'       => 'ok',
-                'data'          => $_data
+                'err_code' => '00',
+                'err_msg' => 'ok',
+                'data' => $_data
             );
         }
         return response($result);
@@ -332,9 +331,9 @@ class MitraController extends Controller
         unset($_data->photo_identitas);
         $_data->photo_identitas = $photo_identitas;
         $result = array(
-            'err_code'      => '00',
-            'err_msg'       => 'ok',
-            'data'          => $_data
+            'err_code' => '00',
+            'err_msg' => 'ok',
+            'data' => $_data
         );
         return response($result);
     }
@@ -348,18 +347,18 @@ class MitraController extends Controller
         $token = (int)$request->token > 0 ? (int)$request->token : 0;
         if ((int)$id_transaksi <= 0) {
             $result = array(
-                'err_code'  => '06',
-                'err_msg'   => 'id_transaksi is required',
-                'data'      => null
+                'err_code' => '06',
+                'err_msg' => 'id_transaksi is required',
+                'data' => null
             );
             return response($result);
             return false;
         }
         if ((int)$token <= 0) {
             $result = array(
-                'err_code'  => '06',
-                'err_msg'   => 'token is required',
-                'data'      => null
+                'err_code' => '06',
+                'err_msg' => 'token is required',
+                'data' => null
             );
             return response($result);
             return false;
@@ -376,29 +375,29 @@ class MitraController extends Controller
                     $_data = DB::table('transaksi')->where($where)->first();
                     DB::table('reg_mitra')->where(array("id_transaksi" => $id_transaksi))->update(array('status' => 8, 'updated_at' => $tgl));
                     $result = array(
-                        'err_code'  => '00',
-                        'err_msg'   => 'ok',
-                        'data'      => $_data
+                        'err_code' => '00',
+                        'err_msg' => 'ok',
+                        'data' => $_data
                     );
                 } else {
                     $result = array(
-                        'err_code'  => '03',
-                        'err_msg'   => 'token tidak sesuai',
-                        'data'      => null
+                        'err_code' => '03',
+                        'err_msg' => 'token tidak sesuai',
+                        'data' => null
                     );
                 }
             } else {
                 $result = array(
-                    'err_code'  => '05',
-                    'err_msg'   => 'transaksi invalid',
-                    'data'      => null
+                    'err_code' => '05',
+                    'err_msg' => 'transaksi invalid',
+                    'data' => null
                 );
             }
         } else {
             $result = array(
-                'err_code'  => '04',
-                'err_msg'   => 'data not found',
-                'data'      => null
+                'err_code' => '04',
+                'err_msg' => 'data not found',
+                'data' => null
             );
         }
         return response($result);
@@ -411,9 +410,9 @@ class MitraController extends Controller
         $id_transaksi = (int)$request->id_transaksi > 0 ? (int)$request->id_transaksi : 0;
         if ((int)$id_transaksi <= 0) {
             $result = array(
-                'err_code'  => '06',
-                'err_msg'   => 'id_transaksi is required',
-                'data'      => null
+                'err_code' => '06',
+                'err_msg' => 'id_transaksi is required',
+                'data' => null
             );
             return response($result);
             return false;
@@ -466,22 +465,22 @@ class MitraController extends Controller
                 });
                 //Log::info(serialize($mail));
                 $result = array(
-                    'err_code'  => '00',
-                    'err_msg'   => 'ok',
-                    'data'      => $token_mitra
+                    'err_code' => '00',
+                    'err_msg' => 'ok',
+                    'data' => $token_mitra
                 );
             } else {
                 $result = array(
-                    'err_code'  => '05',
-                    'err_msg'   => 'transaksi invalid',
-                    'data'      => null
+                    'err_code' => '05',
+                    'err_msg' => 'transaksi invalid',
+                    'data' => null
                 );
             }
         } else {
             $result = array(
-                'err_code'  => '04',
-                'err_msg'   => 'data not found',
-                'data'      => null
+                'err_code' => '04',
+                'err_msg' => 'data not found',
+                'data' => null
             );
         }
         return response($result);
@@ -495,9 +494,9 @@ class MitraController extends Controller
         $id_transaksi = (int)$request->id_transaksi > 0 ? (int)$request->id_transaksi : 0;
         if ((int)$id_transaksi <= 0) {
             $result = array(
-                'err_code'  => '06',
-                'err_msg'   => 'id_transaksi is required',
-                'data'      => null
+                'err_code' => '06',
+                'err_msg' => 'id_transaksi is required',
+                'data' => null
             );
             return response($result);
             return false;
@@ -507,28 +506,28 @@ class MitraController extends Controller
         $cnt_data = DB::table('transaksi')->where($where)->count();
         if ((int)$cnt_data > 0) {
             $dt_update_mitra = array(
-                'id_transaksi'            => 0,
-                'id_transaksi_cancel'    => $id_transaksi,
-                'status'                => 0,
-                'updated_at'             => $tgl
+                'id_transaksi' => 0,
+                'id_transaksi_cancel' => $id_transaksi,
+                'status' => 0,
+                'updated_at' => $tgl
             );
             $dt_update_trans = array(
-                'cancel_ondate'    => $tgl,
-                'status'        => 6,
-                'token_mitra'    => 0,
+                'cancel_ondate' => $tgl,
+                'status' => 6,
+                'token_mitra' => 0,
             );
             DB::table('reg_mitra')->where(array("id_transaksi" => $id_transaksi))->update($dt_update_mitra);
             DB::table('transaksi')->where(array("id_transaksi" => $id_transaksi))->update($dt_update_trans);
             $result = array(
-                'err_code'  => '00',
-                'err_msg'   => 'ok',
-                'data'      => $dt_update_mitra
+                'err_code' => '00',
+                'err_msg' => 'ok',
+                'data' => $dt_update_mitra
             );
         } else {
             $result = array(
-                'err_code'  => '04',
-                'err_msg'   => 'data not found',
-                'data'      => null
+                'err_code' => '04',
+                'err_msg' => 'data not found',
+                'data' => null
             );
         }
         return response($result);

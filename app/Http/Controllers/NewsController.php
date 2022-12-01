@@ -48,17 +48,17 @@ class NewsController extends Controller
                 ->where($where)->offset($offset)->limit($per_page)->orderByRaw($sort_column)->get();
         }
         $result = array(
-            'err_code'      => '04',
-            'err_msg'       => 'data not found',
-            'total_data'    => $count,
-            'data'          => null
+            'err_code' => '04',
+            'err_msg' => 'data not found',
+            'total_data' => $count,
+            'data' => null
         );
         if ($count > 0) {
             foreach ($_data as $d) {
                 $path_img = null;
                 $path_file = null;
-                $path_img  = !empty($d->img) ? env('APP_URL') . '/api_cni/uploads/news/' . $d->img : null;
-                $path_file  = !empty($d->path_file) ? env('APP_URL') . '/api_cni/uploads/news/' . $d->path_file : null;
+                $path_img = !empty($d->img) ? env('APP_URL') . '/api_cni/uploads/news/' . $d->img : null;
+                $path_file = !empty($d->path_file) ? env('APP_URL') . '/api_cni/uploads/news/' . $d->path_file : null;
                 unset($d->created_by);
                 unset($d->updated_by);
                 unset($d->deleted_by);
@@ -73,10 +73,10 @@ class NewsController extends Controller
                 $data[] = $d;
             }
             $result = array(
-                'err_code'      => '00',
-                'err_msg'          => 'ok',
-                'total_data'    => $count,
-                'data'          => $data
+                'err_code' => '00',
+                'err_msg' => 'ok',
+                'total_data' => $count,
+                'data' => $data
             );
         }
         return response($result);
@@ -92,7 +92,7 @@ class NewsController extends Controller
         $path_file = $request->file("path_file");
         $path_img = $request->file("img");
         $data = array(
-            'title'              => $request->title
+            'title' => $request->title
         );
         if (!empty($path_img)) {
             $nama = str_replace(' ', '', $path_img->getClientOriginalName());
@@ -107,18 +107,18 @@ class NewsController extends Controller
             $_extension = array('png', 'jpg', 'jpeg');
             if ($fileSize > 2099200) { // satuan bytes
                 $result = array(
-                    'err_code'  => '07',
-                    'err_msg'   => 'file size over 2048',
-                    'data'      => $fileSize
+                    'err_code' => '07',
+                    'err_msg' => 'file size over 2048',
+                    'data' => $fileSize
                 );
                 return response($result);
                 return false;
             }
             if (!in_array($extension, $_extension)) {
                 $result = array(
-                    'err_code'  => '07',
-                    'err_msg'   => 'file extension not valid',
-                    'data'      => null
+                    'err_code' => '07',
+                    'err_msg' => 'file extension not valid',
+                    'data' => null
                 );
                 return response($result);
                 return false;
@@ -158,20 +158,20 @@ class NewsController extends Controller
         if ($id > 0) {
             $data += array('id_news' => $id);
             $path_img = null;
-            $path_img  = !empty($data['path_file']) ? env('APP_URL') . '/api_cni/uploads/news/' . $data['path_file'] : null;
+            $path_img = !empty($data['path_file']) ? env('APP_URL') . '/api_cni/uploads/news/' . $data['path_file'] : null;
             unset($data['path_file']);
             unset($data['filename']);
             $data += array('path_file' => $path_img);
             $result = array(
-                'err_code'  => '00',
-                'err_msg'   => 'ok',
-                'data'      => $data
+                'err_code' => '00',
+                'err_msg' => 'ok',
+                'data' => $data
             );
         } else {
             $result = array(
-                'err_code'  => '05',
-                'err_msg'   => 'insert has problem',
-                'data'      => null
+                'err_code' => '05',
+                'err_msg' => 'insert has problem',
+                'data' => null
             );
         }
         return response($result);
@@ -185,9 +185,9 @@ class NewsController extends Controller
         DB::table('news')->where('id_news', $id)->update($data);
         $result = array();
         $result = array(
-            'err_code'  => '00',
-            'err_msg'   => 'ok',
-            'data'      => null
+            'err_code' => '00',
+            'err_msg' => 'ok',
+            'data' => null
         );
         return response($result);
     }

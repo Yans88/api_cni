@@ -51,11 +51,11 @@ class CityController extends Controller
             $provinsi = $data_prov->provinsi_name;
         }
         $result = array(
-            'err_code'      => '04',
-            'err_msg'       => 'data not found',
-            'total_data'    => $count,
-            'provinsi'      => $provinsi,
-            'data'          => null
+            'err_code' => '04',
+            'err_msg' => 'data not found',
+            'total_data' => $count,
+            'provinsi' => $provinsi,
+            'data' => null
         );
         if ($count > 0) {
             $provinsi = $_data[0]->provinsi_name;
@@ -69,11 +69,11 @@ class CityController extends Controller
                 $data[] = $d;
             }
             $result = array(
-                'err_code'      => '00',
-                'err_msg'          => 'ok',
-                'total_data'    => $count,
-                'provinsi'      => $provinsi,
-                'data'          => $data
+                'err_code' => '00',
+                'err_msg' => 'ok',
+                'total_data' => $count,
+                'provinsi' => $provinsi,
+                'data' => $data
             );
         }
         return response($result);
@@ -87,15 +87,15 @@ class CityController extends Controller
         $data = array(
             'city_name' => $request->city_name,
             'id_city_cni' => (int)$request->id_city_cni,
-            'kode_jne'      => strtoupper($request->kode_jne),
-            'kode_lp'      => strtoupper($request->kode_lp)
+            'kode_jne' => strtoupper($request->kode_jne),
+            'kode_lp' => strtoupper($request->kode_lp)
         );
         if ($id > 0) {
             $data += array("updated_at" => $tgl, "updated_by" => $request->id_operator);
             DB::table('city')->where('id_city', $id)->update($data);
         } else {
             $data += array(
-                "id_prov"    => (int)$request->id_provinsi,
+                "id_prov" => (int)$request->id_provinsi,
                 "created_at" => $tgl,
                 "created_by" => $request->id_operator
             );
@@ -105,15 +105,15 @@ class CityController extends Controller
         if ($id > 0) {
             $data += array('id_city' => $id);
             $result = array(
-                'err_code'  => '00',
-                'err_msg'   => 'ok',
-                'data'      => $data
+                'err_code' => '00',
+                'err_msg' => 'ok',
+                'data' => $data
             );
         } else {
             $result = array(
-                'err_code'  => '05',
-                'err_msg'   => 'insert has problem',
-                'data'      => null
+                'err_code' => '05',
+                'err_msg' => 'insert has problem',
+                'data' => null
             );
         }
         return response($result);
@@ -129,9 +129,9 @@ class CityController extends Controller
         DB::table('kecamatan')->where($where)->update($data);
         $result = array();
         $result = array(
-            'err_code'  => '00',
-            'err_msg'   => 'ok',
-            'data'      => null
+            'err_code' => '00',
+            'err_msg' => 'ok',
+            'data' => null
         );
         return response($result);
     }

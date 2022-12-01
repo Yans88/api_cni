@@ -49,15 +49,15 @@ class BannerController extends Controller
                 ->where($where)->offset($offset)->limit($per_page)->orderByRaw($sort_column)->get();
         }
         $result = array(
-            'err_code'      => '04',
-            'err_msg'       => 'data not found',
-            'total_data'    => $count,
-            'data'          => null
+            'err_code' => '04',
+            'err_msg' => 'data not found',
+            'total_data' => $count,
+            'data' => null
         );
         if ($count > 0) {
             foreach ($_data as $d) {
                 $path_img = null;
-                $path_img  = !empty($d->img) ? env('APP_URL') . '/api_cni/uploads/banners/' . $d->img : null;
+                $path_img = !empty($d->img) ? env('APP_URL') . '/api_cni/uploads/banners/' . $d->img : null;
                 unset($d->created_by);
                 unset($d->updated_by);
                 unset($d->deleted_by);
@@ -69,10 +69,10 @@ class BannerController extends Controller
                 $data[] = $d;
             }
             $result = array(
-                'err_code'      => '00',
-                'err_msg'          => 'ok',
-                'total_data'    => $count,
-                'data'          => $data
+                'err_code' => '00',
+                'err_msg' => 'ok',
+                'total_data' => $count,
+                'data' => $data
             );
         }
         return response($result);
@@ -87,16 +87,16 @@ class BannerController extends Controller
         $id = (int)$request->id_banner > 0 ? (int)$request->id_banner : 0;
         $path_img = $request->file("img");
         $data = array(
-            'type'              => (int)$request->type,
-            'priority_number'   => (int)$request->priority_number
+            'type' => (int)$request->type,
+            'priority_number' => (int)$request->priority_number
         );
         if ((int)$request->type == 1) $data += array('id_product' => (int)$request->id_product);
         if ((int)$request->type == 2) $data += array('url' => $request->url);
         if (!$this->isValidPriority($id, $request->priority_number)) {
             $result = array(
-                'err_code'  => '06',
-                'err_msg'   => 'priority_number already exist',
-                'data'      => null
+                'err_code' => '06',
+                'err_msg' => 'priority_number already exist',
+                'data' => null
             );
             return response($result);
             return false;
@@ -114,18 +114,18 @@ class BannerController extends Controller
             $_extension = array('png', 'jpg', 'jpeg');
             if ($fileSize > 2099200) { // satuan bytes
                 $result = array(
-                    'err_code'  => '07',
-                    'err_msg'   => 'file size over 2048',
-                    'data'      => $fileSize
+                    'err_code' => '07',
+                    'err_msg' => 'file size over 2048',
+                    'data' => $fileSize
                 );
                 return response($result);
                 return false;
             }
             if (!in_array($extension, $_extension)) {
                 $result = array(
-                    'err_code'  => '07',
-                    'err_msg'   => 'file extension not valid',
-                    'data'      => null
+                    'err_code' => '07',
+                    'err_msg' => 'file extension not valid',
+                    'data' => null
                 );
                 return response($result);
                 return false;
@@ -144,15 +144,15 @@ class BannerController extends Controller
         if ($id > 0) {
             $data += array('id_banner' => $id);
             $result = array(
-                'err_code'  => '00',
-                'err_msg'   => 'ok',
-                'data'      => $data
+                'err_code' => '00',
+                'err_msg' => 'ok',
+                'data' => $data
             );
         } else {
             $result = array(
-                'err_code'  => '05',
-                'err_msg'   => 'insert has problem',
-                'data'      => null
+                'err_code' => '05',
+                'err_msg' => 'insert has problem',
+                'data' => null
             );
         }
         return response($result);
@@ -166,9 +166,9 @@ class BannerController extends Controller
         DB::table('banner')->where('id_banner', $id)->update($data);
         $result = array();
         $result = array(
-            'err_code'  => '00',
-            'err_msg'   => 'ok',
-            'data'      => null
+            'err_code' => '00',
+            'err_msg' => 'ok',
+            'data' => null
         );
         return response($result);
     }

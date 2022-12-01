@@ -44,10 +44,10 @@ class ProvinsiController extends Controller
             $_data = DB::table('provinsi')->where($where)->offset($offset)->limit($per_page)->orderBy($sort_column, $sort_order)->get();
         }
         $result = array(
-            'err_code'      => '04',
-            'err_msg'       => 'data not found',
-            'total_data'    => $count,
-            'data'          => null
+            'err_code' => '04',
+            'err_msg' => 'data not found',
+            'total_data' => $count,
+            'data' => null
         );
         if ($count > 0) {
             foreach ($_data as $d) {
@@ -60,10 +60,10 @@ class ProvinsiController extends Controller
                 $data[] = $d;
             }
             $result = array(
-                'err_code'      => '00',
-                'err_msg'          => 'ok',
-                'total_data'    => $count,
-                'data'          => $data
+                'err_code' => '00',
+                'err_msg' => 'ok',
+                'total_data' => $count,
+                'data' => $data
             );
         }
         return response($result);
@@ -77,8 +77,8 @@ class ProvinsiController extends Controller
         $data = array(
             'provinsi_name' => $request->provinsi_name,
             'id_prov_cni' => (int)$request->id_prov_cni,
-            'kode_jne'      => strtoupper($request->kode_jne),
-            'kode_lp'      => strtoupper($request->kode_lp)
+            'kode_jne' => strtoupper($request->kode_jne),
+            'kode_lp' => strtoupper($request->kode_lp)
         );
 
         if ($id > 0) {
@@ -92,15 +92,15 @@ class ProvinsiController extends Controller
         if ($id > 0) {
             $data += array('id_provinsi' => $id);
             $result = array(
-                'err_code'  => '00',
-                'err_msg'   => 'ok',
-                'data'      => $data
+                'err_code' => '00',
+                'err_msg' => 'ok',
+                'data' => $data
             );
         } else {
             $result = array(
-                'err_code'  => '05',
-                'err_msg'   => 'insert has problem',
-                'data'      => null
+                'err_code' => '05',
+                'err_msg' => 'insert has problem',
+                'data' => null
             );
         }
         return response($result);
@@ -133,9 +133,9 @@ class ProvinsiController extends Controller
         }
         $result = array();
         $result = array(
-            'err_code'  => '00',
-            'err_msg'   => 'ok',
-            'data'      => null
+            'err_code' => '00',
+            'err_msg' => 'ok',
+            'data' => null
         );
         return response($result);
     }
@@ -167,10 +167,10 @@ class ProvinsiController extends Controller
         }
         $result = array();
         $result = array(
-            'err_code'      => '04',
-            'err_msg'       => 'data not found',
-            'total_data'    => $count,
-            'data'          => null
+            'err_code' => '04',
+            'err_msg' => 'data not found',
+            'total_data' => $count,
+            'data' => null
         );
         if ((int)$count > 0) {
             foreach ($_data as $d) {
@@ -185,10 +185,10 @@ class ProvinsiController extends Controller
                 $data[] = $d;
             }
             $result = array(
-                'err_code'      => '00',
-                'err_msg'       => 'ok',
-                'total_data'    => $count,
-                'data'          => $data
+                'err_code' => '00',
+                'err_msg' => 'ok',
+                'total_data' => $count,
+                'data' => $data
             );
         }
         return response($result);
@@ -206,8 +206,8 @@ class ProvinsiController extends Controller
             'alamat_wh' => $request->alamat_wh,
             'client_code' => $request->client_code,
             'id_prov' => (int)$request->id_prov,
-            'is_jne'  => (int)$request->is_jne,
-            'is_lp'   => (int)$request->is_lp
+            'is_jne' => (int)$request->is_jne,
+            'is_lp' => (int)$request->is_lp
         );
 
         if ($id > 0) {
@@ -226,15 +226,15 @@ class ProvinsiController extends Controller
             $data += array('id_wh' => $id);
             DB::table('provinsi')->where('id_provinsi', (int)$request->id_prov)->update(array('id_wh' => $id));
             $result = array(
-                'err_code'  => '00',
-                'err_msg'   => 'ok',
-                'data'      => $data
+                'err_code' => '00',
+                'err_msg' => 'ok',
+                'data' => $data
             );
         } else {
             $result = array(
-                'err_code'  => '05',
-                'err_msg'   => 'insert has problem',
-                'data'      => null
+                'err_code' => '05',
+                'err_msg' => 'insert has problem',
+                'data' => null
             );
         }
         return response($result);
@@ -252,9 +252,9 @@ class ProvinsiController extends Controller
             ->update(array('id_wh' => 0, 'updated_at' => $tgl, 'updated_by' => (int)$id_operator));
         $result = array();
         $result = array(
-            'err_code'  => '00',
-            'err_msg'   => 'ok',
-            'data'      => null
+            'err_code' => '00',
+            'err_msg' => 'ok',
+            'data' => null
         );
         return response($result);
     }
@@ -284,15 +284,15 @@ class ProvinsiController extends Controller
         $data_wh = DB::table('warehouse')->select('warehouse.*', 'provinsi_name', 'kode_jne', 'kode_lp')
             ->where(array('warehouse.id_wh' => $id))->leftJoin('provinsi', 'provinsi.id_provinsi', '=', 'warehouse.id_prov')->first();
         $result = array(
-            'err_code'      => '04',
-            'err_msg'       => 'data not found',
-            'total_data'    => $count,
-            'id_wh'            => $data_wh->id_wh,
-            'wh_name'        => $data_wh->wh_name,
-            'provinsi_origin'    => $data_wh->provinsi_name,
-            'kode_jne'            => $data_wh->kode_jne,
-            'kode_lp'            => $data_wh->kode_lp,
-            'data'          => null
+            'err_code' => '04',
+            'err_msg' => 'data not found',
+            'total_data' => $count,
+            'id_wh' => $data_wh->id_wh,
+            'wh_name' => $data_wh->wh_name,
+            'provinsi_origin' => $data_wh->provinsi_name,
+            'kode_jne' => $data_wh->kode_jne,
+            'kode_lp' => $data_wh->kode_lp,
+            'data' => null
         );
         if ($count > 0) {
             foreach ($_data as $d) {
@@ -306,15 +306,15 @@ class ProvinsiController extends Controller
                 $data[] = $d;
             }
             $result = array(
-                'err_code'      => '00',
-                'err_msg'          => 'ok',
-                'total_data'    => $count,
-                'id_wh'            => $data_wh->id_wh,
-                'wh_name'        => $data_wh->wh_name,
-                'provinsi_origin'    => $data_wh->provinsi_name,
-                'kode_jne'            => $data_wh->kode_jne,
-                'kode_lp'            => $data_wh->kode_lp,
-                'data'          => $data
+                'err_code' => '00',
+                'err_msg' => 'ok',
+                'total_data' => $count,
+                'id_wh' => $data_wh->id_wh,
+                'wh_name' => $data_wh->wh_name,
+                'provinsi_origin' => $data_wh->provinsi_name,
+                'kode_jne' => $data_wh->kode_jne,
+                'kode_lp' => $data_wh->kode_lp,
+                'data' => $data
             );
         }
         return response($result);
@@ -339,9 +339,9 @@ class ProvinsiController extends Controller
         }
         $result = array();
         $result = array(
-            'err_code'  => '00',
-            'err_msg'   => 'ok',
-            'data'      => null
+            'err_code' => '00',
+            'err_msg' => 'ok',
+            'data' => null
         );
         return response($result);
     }
@@ -356,9 +356,9 @@ class ProvinsiController extends Controller
         DB::table('provinsi')->where(array("deleted_at" => null, "id_provinsi" => $id_prov))->update($data);
         $result = array();
         $result = array(
-            'err_code'  => '00',
-            'err_msg'   => 'ok',
-            'data'      => null
+            'err_code' => '00',
+            'err_msg' => 'ok',
+            'data' => null
         );
         return response($result);
     }

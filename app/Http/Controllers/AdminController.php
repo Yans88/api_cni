@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Helpers\Helper;
 use App\Models\Admin as Admin;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
-use App\Helpers\Helper;
 
 class AdminController extends Controller
 {
@@ -50,15 +50,15 @@ class AdminController extends Controller
                 ->where($where)->offset($offset)->limit($per_page)->orderBy($sort_column, $sort_order)->get();
         }
         $result = array(
-            'err_code'      => '04',
-            'err_msg'       => 'data not found',
-            'total_data'    => $count,
-            'data'          => null
+            'err_code' => '04',
+            'err_msg' => 'data not found',
+            'total_data' => $count,
+            'data' => null
         );
         if ($count > 0) {
             foreach ($_data as $d) {
-                $password  = '';
-                $password  = Crypt::decryptString($d->password);
+                $password = '';
+                $password = Crypt::decryptString($d->password);
                 unset($d->created_by);
                 unset($d->updated_by);
                 unset($d->deleted_by);
@@ -73,10 +73,10 @@ class AdminController extends Controller
             //unset($data->password);
             //$data->password = $password;
             $result = array(
-                'err_code'      => '00',
-                'err_msg'          => 'ok',
-                'total_data'    => $count,
-                'data'          => $data
+                'err_code' => '00',
+                'err_msg' => 'ok',
+                'total_data' => $count,
+                'data' => $data
             );
         }
         return response($result);
@@ -90,9 +90,9 @@ class AdminController extends Controller
 
         $count = Admin::where($where)->count();
         $result = array(
-            'err_code'  => '04',
-            'err_msg'   => 'data not found',
-            'data'      => null
+            'err_code' => '04',
+            'err_msg' => 'data not found',
+            'data' => null
         );
         if ($count > 0) {
             $data = DB::table('admin')->select('admin.*', 'level.*', 'wh_name')
@@ -110,9 +110,9 @@ class AdminController extends Controller
             unset($data->password);
             $data->password = $password;
             $result = array(
-                'err_code'  => '00',
-                'err_msg'   => 'ok',
-                'data'      => $data
+                'err_code' => '00',
+                'err_msg' => 'ok',
+                'data' => $data
             );
         }
         return response($result);
@@ -131,9 +131,9 @@ class AdminController extends Controller
         $data->created_by = $request->created_by;
         $data->save();
         $result = array(
-            'err_code'  => '00',
-            'err_msg'   => 'ok',
-            'data'      => $data
+            'err_code' => '00',
+            'err_msg' => 'ok',
+            'data' => $data
         );
         return response($result);
     }
@@ -153,15 +153,15 @@ class AdminController extends Controller
             $data->updated_by = $request->updated_by;
             $data->save();
             $result = array(
-                'err_code'  => '00',
-                'err_msg'   => 'ok',
-                'data'      => $data
+                'err_code' => '00',
+                'err_msg' => 'ok',
+                'data' => $data
             );
         } else {
             $result = array(
-                'err_code'  => '02',
-                'err_msg'   => 'id_admin required',
-                'data'      => null
+                'err_code' => '02',
+                'err_msg' => 'id_admin required',
+                'data' => null
             );
         }
         return response($result);
@@ -176,8 +176,8 @@ class AdminController extends Controller
         $data->deleted_by = $request->deleted_by;
         $data->save();
         $result = array(
-            'err_code'  => '00',
-            'err_msg'   => 'ok'
+            'err_code' => '00',
+            'err_msg' => 'ok'
         );
         return response($result);
     }
@@ -191,9 +191,9 @@ class AdminController extends Controller
 
         $count = Admin::where($where)->count();
         $result = array(
-            'err_code'  => '04',
-            'err_msg'   => 'data not found',
-            'data'      => null
+            'err_code' => '04',
+            'err_msg' => 'data not found',
+            'data' => null
         );
         if ($count > 0) {
             $data = Admin::where($where)->first();
@@ -202,14 +202,14 @@ class AdminController extends Controller
                 unset($data->password);
                 //$data->password = $password;
                 $result = array(
-                    'err_code'  => '00',
-                    'err_msg'   => 'ok',
-                    'data'      => $data
+                    'err_code' => '00',
+                    'err_msg' => 'ok',
+                    'data' => $data
                 );
             } else {
                 $result = array(
-                    'err_code'  => '03',
-                    'err_msg'   => 'password tidak sesuai'
+                    'err_code' => '03',
+                    'err_msg' => 'password tidak sesuai'
 
                 );
             }

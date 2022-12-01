@@ -3,10 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Helpers\Helper;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
-use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 
 class ProductController extends Controller
@@ -999,67 +999,75 @@ class ProductController extends Controller
         $id_member = (int)$request->id_member > 0 ? $request->id_member : 0;
         $list_item = json_decode($request->list_item);
         $whereIn = [];
-        for ($i = 0; $i < count($list_item); $i++) {
-            $whereIn[] = $list_item[$i]->id_product;
-            $_whereIn = implode(', ', $whereIn);
-        }
-        if ($id_member <= 0) {
-            $result = array(
-                'err_code' => '02',
-                'err_msg' => 'id_member required',
-                'data' => null
-            );
-            return response($result);
-            return false;
-        }
-        if (count($whereIn) <= 0) {
-            $result = array(
-                'err_code' => '02',
-                'err_msg' => 'list_item required',
-                'data' => null
-            );
-            return response($result);
-            return false;
-        }
-        $dt_limit_beli = [];
-        $dt_min_beli = [];
-        $sudah_beli = [];
-        $data = [];
-        $sql = "select id_product, limit_pembelian, start_date, end_date from limit_pembelian
-            where id_product in (" . $_whereIn . ") and deleted_at is null and start_date::timestamp <= '" . $tgl . "' and end_date::timestamp >= '" . $tgl . "'";
-        $limit_pembelian = DB::select(DB::raw($sql));
-        if (!empty($limit_pembelian)) {
-            foreach ($limit_pembelian as $lp) {
-                $dt_limit_beli[$lp->id_product] = (int)$lp->limit_pembelian;
-                $from = $lp->start_date;
-                $to = $lp->end_date;
-                $sql_jml_beli = "select sum(jml) as jml_beli from transaksi_detail left join transaksi on transaksi_detail.id_trans = transaksi.id_transaksi where id_member =$id_member
-                                 and id_product=$lp->id_product and transaksi.status in(0,1,2,3,4,5) and and to_char(transaksi.created_at, 'YYYY-MM-DD') >= '" . $from . "' and to_char(transaksi.created_at, 'YYYY-MM-DD') <= '" . $to . "'";
-                $cek_jml_beli = DB::select(DB::raw($sql_jml_beli));
-                $sudah_beli[$lp->id_product] = (int)$cek_jml_beli->jml_beli;
+        Log::info($list_item[0]->id_product);
+        try {
+            for ($i = 0; $i < count($list_item); $i++) {
+                $whereIn[] = $list_item[$i]->id_product;
+                $_whereIn = implode(', ', $whereIn);
             }
+            if ($id_member <= 0) {
+                $result = array(
+                    'err_code' => '02',
+                    'err_msg' => 'id_member required',
+                    'data' => null
+                );
+                return response($result);
+                return false;
+            }
+            if (count($whereIn) <= 0) {
+                $result = array(
+                    'err_code' => '02',
+                    'err_msg' => 'list_item required',
+                    'data' => null
+                );
+                return response($result);
+                return false;
+            }
+            $dt_limit_beli = [];
+            $dt_min_beli = [];
+            $sudah_beli = [];
+            $data = [];
+            $sql = "select id_product, limit_pembelian, start_date, end_date from limit_pembelian
+            where id_product in (" . $_whereIn . ") and deleted_at is null and start_date::timestamp <= '" . $tgl . "' and end_date::timestamp >= '" . $tgl . "'";
+            $limit_pembelian = DB::select(DB::raw($sql));
+            if (!empty($limit_pembelian)) {
+                foreach ($limit_pembelian as $lp) {
+                    $dt_limit_beli[$lp->id_product] = (int)$lp->limit_pembelian;
+                    $from = $lp->start_date;
+                    $to = $lp->end_date;
+                    $sql_jml_beli = "select sum(jml) as jml_beli from transaksi_detail left join transaksi on transaksi_detail.id_trans = transaksi.id_transaksi where id_member =$id_member
+                                 and id_product=$lp->id_product and transaksi.status in(0,1,2,3,4,5) and to_char(transaksi.created_at, 'YYYY-MM-DD') >= '" . $from . "' and to_char(transaksi.created_at, 'YYYY-MM-DD') <= '" . $to . "'";
+                    $cek_jml_beli = DB::select(DB::raw($sql_jml_beli));
+                    $sudah_beli[$lp->id_product] = isset($cek_jml_beli) && (int)$cek_jml_beli[0]->jml_beli > 0 ? (int)$cek_jml_beli[0]->jml_beli : 0;
+                }
+            }
+
+            $sql_min = "select id_product, min_pembelian from product where id_product in (" . $_whereIn . ") and deleted_at is null";
+            $min_beli = DB::select(DB::raw($sql_min));
+            if (!empty($min_beli)) {
+                foreach ($min_beli as $lp) {
+                    $dt_min_beli[$lp->id_product] = (int)$lp->min_pembelian;
+                }
+            }
+            for ($i = 0; $i < count($list_item); $i++) {
+                $limit_pembelian = isset($dt_limit_beli[$list_item[$i]->id_product]) ? (int)$dt_limit_beli[$list_item[$i]->id_product] : 0;
+                $sudahBeli = isset($sudah_beli[$list_item[$i]->id_product]) ? (int)$sudah_beli[$list_item[$i]->id_product] : 0;
+                $sisa_beli = $limit_pembelian - $sudahBeli;
+                $min_pembelian = isset($dt_min_beli[$list_item[$i]->id_product]) ? (int)$dt_min_beli[$list_item[$i]->id_product] : 0;
+                $data[] = array(
+                    'id_product' => $list_item[$i]->id_product,
+                    'jml' => $list_item[$i]->jml,
+                    'limit_pembelian' => $limit_pembelian,
+                    'min_pembelian' => $min_pembelian,
+                    'sudah_beli' => $sudahBeli,
+                    'is_available' => (int)$list_item[$i]->jml >= $sisa_beli && (int)$list_item[$i]->jml >= $min_pembelian ? 1 : 0
+                );
+            }
+        } catch (Exception $e) {
+            Log::info($e);
+
         }
 
-        $sql_min = "select id_product, min_pembelian from product where id_product in (" . $_whereIn . ") and deleted_at is null";
-        $min_beli = DB::select(DB::raw($sql_min));
-        if (!empty($min_beli)) {
-            foreach ($min_beli as $lp) {
-                $dt_min_beli[$lp->id_product] = (int)$lp->min_pembelian;
-            }
-        }
-        for ($i = 0; $i < count($list_item); $i++) {
-            $limit_pembelian = isset($dt_limit_beli[$list_item[$i]->id_product]) ? (int)$dt_limit_beli[$list_item[$i]->id_product] : 0;
-            $sudahBeli = isset($sudah_beli[$list_item[$i]->id_product]) ? (int)$sudah_beli[$list_item[$i]->id_product] : 0;
-            $sisa_beli = $limit_pembelian - $sudahBeli;
-            $data[] = array(
-                'id_product' => $list_item[$i]->id_product,
-                'jml' => $list_item[$i]->jml,
-                'limit_pembelian' => $limit_pembelian,
-                'min_pembelian' => isset($dt_min_beli[$list_item[$i]->id_product]) ? (int)$dt_min_beli[$list_item[$i]->id_product] : 0,
-                'sudah_beli' => $sudahBeli,
-                'is_available' => (int)$list_item[$i]->jml >= $sisa_beli ? 1 : 0
-            );
-        }
         $result = array(
             'err_code' => '00',
             'err_msg' => 'ok',

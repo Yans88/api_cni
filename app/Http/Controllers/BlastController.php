@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Helpers\Helper;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 
 class BlastController extends Controller
