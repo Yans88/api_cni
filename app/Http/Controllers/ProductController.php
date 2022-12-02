@@ -999,7 +999,7 @@ class ProductController extends Controller
         $id_member = (int)$request->id_member > 0 ? $request->id_member : 0;
         $list_item = json_decode($request->list_item);
         $whereIn = [];
-        Log::info($list_item[0]->id_product);
+        
         try {
             for ($i = 0; $i < count($list_item); $i++) {
                 $whereIn[] = $list_item[$i]->id_product;
@@ -1027,17 +1027,18 @@ class ProductController extends Controller
             $dt_min_beli = [];
             $sudah_beli = [];
             $data = [];
-            $sql = "select id_product, limit_pembelian, start_date, end_date from limit_pembelian
-            where id_product in (" . $_whereIn . ") and deleted_at is null and start_date::timestamp <= '" . $tgl . "' and end_date::timestamp >= '" . $tgl . "'";
+            $sql = "select id_product, limit_pembelian, start_date, end_date from limit_pembelian 
+            where id_product in (" . $_whereIn . ") and deleted_at is null and to_char(start_date, 'YYYY-MM-DD') <= '" . $tgl . "' and to_char(end_date, 'YYYY-MM-DD') >= '" . $tgl . "'";
             $limit_pembelian = DB::select(DB::raw($sql));
             if (!empty($limit_pembelian)) {
                 foreach ($limit_pembelian as $lp) {
                     $dt_limit_beli[$lp->id_product] = (int)$lp->limit_pembelian;
-                    $from = $lp->start_date;
-                    $to = $lp->end_date;
+                    $from = date('Y-m-d',strtotime($lp->start_date));
+                    $to =  date('Y-m-d',strtotime($lp->end_date));
                     $sql_jml_beli = "select sum(jml) as jml_beli from transaksi_detail left join transaksi on transaksi_detail.id_trans = transaksi.id_transaksi where id_member =$id_member
                                  and id_product=$lp->id_product and transaksi.status in(0,1,2,3,4,5) and to_char(transaksi.created_at, 'YYYY-MM-DD') >= '" . $from . "' and to_char(transaksi.created_at, 'YYYY-MM-DD') <= '" . $to . "'";
-                    $cek_jml_beli = DB::select(DB::raw($sql_jml_beli));
+                    Log::info($sql_jml_beli);
+					$cek_jml_beli = DB::select(DB::raw($sql_jml_beli));
                     $sudah_beli[$lp->id_product] = isset($cek_jml_beli) && (int)$cek_jml_beli[0]->jml_beli > 0 ? (int)$cek_jml_beli[0]->jml_beli : 0;
                 }
             }
@@ -1061,6 +1062,7 @@ class ProductController extends Controller
                     'min_pembelian' => $min_pembelian,
                     'sudah_beli' => $sudahBeli,
                     'is_available' => (int)$list_item[$i]->jml >= $sisa_beli && (int)$list_item[$i]->jml >= $min_pembelian ? 1 : 0
+                   /* 'is_available' => (int)$list_item[$i]->jml <= $sisa_beli && (int)$list_item[$i]->jml >= $min_pembelian ? 1 : 0*/
                 );
             }
         } catch (Exception $e) {

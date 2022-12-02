@@ -37,7 +37,7 @@ class Vouchers extends Controller
         $_data = array();
         $data = array();
 
-        $sql = "select id_voucher from vouchers where vouchers.deleted_at is null and vouchers.start_date::timestamp <= '" . $tgl . "' and vouchers.end_date::timestamp >= '" . $tgl . "'";
+        $sql = "select id_voucher from vouchers where vouchers.deleted_at is null";
         $voucher_valid = DB::select(DB::raw($sql));
         $whereIn = array();
         if (!empty($voucher_valid)) {
