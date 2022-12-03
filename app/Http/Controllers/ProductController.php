@@ -999,7 +999,7 @@ class ProductController extends Controller
         $id_member = (int)$request->id_member > 0 ? $request->id_member : 0;
         $list_item = json_decode($request->list_item);
         $whereIn = [];
-        
+
         try {
             for ($i = 0; $i < count($list_item); $i++) {
                 $whereIn[] = $list_item[$i]->id_product;
@@ -1027,7 +1027,7 @@ class ProductController extends Controller
             $dt_min_beli = [];
             $sudah_beli = [];
             $data = [];
-            $sql = "select id_product, limit_pembelian, start_date, end_date from limit_pembelian 
+            $sql = "select id_product, limit_pembelian, start_date, end_date from limit_pembelian
             where id_product in (" . $_whereIn . ") and deleted_at is null and to_char(start_date, 'YYYY-MM-DD') <= '" . $tgl . "' and to_char(end_date, 'YYYY-MM-DD') >= '" . $tgl . "'";
             $limit_pembelian = DB::select(DB::raw($sql));
             if (!empty($limit_pembelian)) {
@@ -1061,7 +1061,7 @@ class ProductController extends Controller
                     'limit_pembelian' => $limit_pembelian,
                     'min_pembelian' => $min_pembelian,
                     'sudah_beli' => $sudahBeli,
-                    'is_available' => (int)$list_item[$i]->jml >= $sisa_beli && (int)$list_item[$i]->jml >= $min_pembelian ? 1 : 0
+                    'is_available' => (int)$list_item[$i]->jml >= $min_pembelian ? 1 : 0
                    /* 'is_available' => (int)$list_item[$i]->jml <= $sisa_beli && (int)$list_item[$i]->jml >= $min_pembelian ? 1 : 0*/
                 );
             }

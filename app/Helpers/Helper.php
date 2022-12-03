@@ -746,7 +746,7 @@ class Helper
                 'type' => "cart"
             );
             DB::table('cart')->whereIn('id_member', $whereIn)->update(array('will_be_notified_on_date' => $will_be_notified_on_date));
-            send_fcm_multiple($target);
+            send_fcm_multiple($target,$data_fcm);
         }
         //return $sql;
     }
