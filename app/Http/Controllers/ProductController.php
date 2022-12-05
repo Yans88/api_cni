@@ -1051,7 +1051,7 @@ class ProductController extends Controller
                 }
             }
             for ($i = 0; $i < count($list_item); $i++) {
-                $limit_pembelian = isset($dt_limit_beli[$list_item[$i]->id_product]) ? (int)$dt_limit_beli[$list_item[$i]->id_product] : 0;
+                $limit_pembelian = isset($dt_limit_beli[$list_item[$i]->id_product]) ? (int)$dt_limit_beli[$list_item[$i]->id_product] : 999999;
                 $sudahBeli = isset($sudah_beli[$list_item[$i]->id_product]) ? (int)$sudah_beli[$list_item[$i]->id_product] : 0;
                 $sisa_beli = $limit_pembelian - $sudahBeli;
                 $min_pembelian = isset($dt_min_beli[$list_item[$i]->id_product]) ? (int)$dt_min_beli[$list_item[$i]->id_product] : 0;
