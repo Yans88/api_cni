@@ -278,6 +278,7 @@ class ReportController extends Controller
                 $d->ttl_rv = $ttl_rv;
 
                 //$d->ttl_disc = number_format($ttl_disc,2,",",".");
+                $d->pot_voucher = $pot_voucher;
                 $d->jpayment = $jpayment;
                 $d->created_at = $created_at;
                 $d->payment_date = $payment_date;

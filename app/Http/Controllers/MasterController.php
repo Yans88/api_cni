@@ -764,6 +764,7 @@ class MasterController extends Controller
             }
             $ttl_weight = $_data->ttl_weight > 1000 ? $_data->ttl_weight / 1000 : 1;
             $ttl_weight = number_format((float)$ttl_weight, 1, '.', '');
+            $order_replace = array("\r\n", "\n", "\r");
             $postfields = array(
                 "username" => env('JNE_USERNAME'),
                 "api_key" => env('JNE_APIKEY'),
@@ -777,7 +778,7 @@ class MasterController extends Controller
                 "OLSHOP_SHIPPER_PHONE" => "-",
                 "OLSHOP_ORIG" => $_data->kode_origin,
                 "OLSHOP_RECEIVER_NAME" => $_data->nama_penerima,
-                "OLSHOP_RECEIVER_ADDR1" => $_data->alamat,
+                "OLSHOP_RECEIVER_ADDR1" => str_replace($order_replace, '', $_data->alamat),
                 "OLSHOP_RECEIVER_CITY" => $_data->city_name,
                 "OLSHOP_RECEIVER_ZIP" => $_data->kode_pos,
                 "OLSHOP_RECEIVER_PHONE" => $_data->phone_penerima,
