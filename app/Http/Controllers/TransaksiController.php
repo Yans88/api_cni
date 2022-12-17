@@ -181,6 +181,8 @@ class TransaksiController extends Controller
 
     function store(Request $request)
     {
+        Log::info("start transaksi");
+        Log::info(serialize($request->all()));
         $url_path_doku = env('URL_JOKUL');
         $clientId = env('CLIENT_ID_JOKUL');
         $secretKey = env('SECRET_KEY_JOKUL');
@@ -727,7 +729,7 @@ class TransaksiController extends Controller
                 $custid = empty($cni_id) ? $id_member : '';
                 $memberid = $cni_id;
                 $submit_voucher = Helper::submit_voucher($custid, $memberid, $kodevoucher, $id_transaksi);
-
+                Log::info(serialize($submit_voucher));
                 if ($submit_voucher['result'] != 'y') {
                     DB::rollback();
                     DB::table('transaksi')->where('id_transaksi', $id_transaksi)->delete();
@@ -1129,6 +1131,13 @@ class TransaksiController extends Controller
                     }
 
                     curl_close($ch);
+                     Log::info(serialize($componentSignature));
+                     Log::info(serialize($headers));
+                     Log::info(serialize($requestBody));
+                     Log::info('signature :' . $signature);
+                     Log::info('secretKey :' . $secretKey);
+                     Log::info('clientId : ' . $clientId);
+                     Log::info(serialize($result));
                     $data_result = json_decode($result);
                     $dt = isset($data_result->virtual_account_info) ? $data_result->virtual_account_info : '';
                     $key_payment = !empty($dt) ? $dt->virtual_account_number : '';
@@ -1176,7 +1185,7 @@ class TransaksiController extends Controller
 
                     DB::table('vouchers')->where('id_voucher', $id_voucher)->update($dt_voucher);
                 }
-                // DB::connection()->enableQueryLog();
+                DB::connection()->enableQueryLog();
                 if ($id_voucher > 0) {
                     $where_voucher_member = array(
                         'id_voucher' => $id_voucher,
@@ -1188,7 +1197,7 @@ class TransaksiController extends Controller
                             "is_used" => null
                         );
                         DB::table('list_member_voucher')->where($where_voucher_member)->update(array('is_used' => $id_transaksi, 'updated_at' => $tgl, 'updated_by' => -1));
-                        // Log::info(DB::getQueryLog());
+                        Log::info(DB::getQueryLog());
                     } else {
                         $where_voucher_member += array(
                             "created_at" => $tgl,
@@ -1198,6 +1207,10 @@ class TransaksiController extends Controller
                         DB::table('list_member_voucher')->insert($where_voucher_member);
                     }
                 }
+                Log::info(DB::getQueryLog());
+                DB::commit();
+                if ($status == 1) Helper::send_order_cni($id_transaksi, 'transaksi', $is_upgrade);
+                if ($tipe_pengiriman == 3) Helper::upd_stok($upd_product);
                 if ((int)$is_regmitra <= 0) {
                     DB::table('cart')->where('id_member', $id_member)->whereIn('id_product', $whereIn)->delete();
                     $setting = DB::table('setting')->get()->toArray();
@@ -1356,9 +1369,7 @@ class TransaksiController extends Controller
                     });
                 }
 
-                DB::commit();
-                if ($status == 1) Helper::send_order_cni($id_transaksi, 'transaksi', $is_upgrade);
-                if ($tipe_pengiriman == 3) Helper::upd_stok($upd_product);
+
             } else {
                 DB::rollback();
                 DB::table('transaksi')->where('id_transaksi', $id_transaksi)->delete();
@@ -1376,6 +1387,7 @@ class TransaksiController extends Controller
             'err_msg' => 'ok',
             'data' => $dt_trans
         );
+        Log::info("end transaksi");
         return response($result);
     }
 

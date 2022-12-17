@@ -76,6 +76,12 @@ class SimpatikController extends Controller
         $_tgl = date('YmdHi');
         $data = array();
         $id_member = (int)$request->id_member > 0 ? (int)$request->id_member : 0;
+        $nama_mitra = $request->nama_mitra ? $request->nama_mitra : '';
+        $no_hp = $request->no_hp ? $request->no_hp : '';
+        $alamat = $request->alamat ? $request->alamat : '';
+        $no_rek = $request->no_rek ? $request->no_rek : '';
+        $bank = $request->bank ? $request->bank : '';
+        $atas_nama = $request->atas_nama ? $request->atas_nama : '';
         $kota_kecelakaan = (int)$request->kota_kecelakaan > 0 ? (int)$request->kota_kecelakaan : 0;
         $tgl_kecelakaan = $request->tgl_kecelakaan ? date('Y-m-d', strtotime($request->tgl_kecelakaan)) : null;
         $tgl_pernah_kecelakaan_sebelumnya = $request->tgl_pernah_kecelakaan_sebelumnya ? date('Y-m-d', strtotime($request->tgl_pernah_kecelakaan_sebelumnya)) : null;
@@ -89,9 +95,16 @@ class SimpatikController extends Controller
         $meninggal_rincian_penyebabnya = $request->meninggal_rincian_penyebabnya ? $request->meninggal_rincian_penyebabnya : '';
         $is_agree = (int)$request->is_agree > 0 ? (int)$request->is_agree : 0;
 
-        $nama_dokter = $request->file("nama_dokter");
-        $no_ref_dokter = $request->file("no_ref_dokter");
-        $no_hp_dokter = $request->file("no_hp_dokter");
+        $nama_dokter = $request->nama_dokter ? $request->nama_dokter : '';
+        $no_ref_dokter = $request->no_ref_dokter ? $request->no_ref_dokter : '';
+        $no_hp_dokter = $request->no_hp_dokter ? $request->no_hp_dokter : '';
+
+        $photo_ktp = $request->file("photo_ktp");
+        $photo_kk = $request->file("photo_kk");
+        $suket_asli_kecelakaan = $request->file("suket_asli_kecelakaan");
+        $kwitansi_asli_biaya = $request->file("kwitansi_asli_biaya");
+        $resep_dokter = $request->file("resep_dokter");
+        $suket_meninggal = $request->file("suket_meninggal");
         if ((int)$id_member <= 0) {
             $result = array(
                 'err_code' => '06',
@@ -113,6 +126,12 @@ class SimpatikController extends Controller
 
         $data = array(
             'id_member' => $id_member,
+            'nama_mitra' => $id_member,
+            'no_hp' => $no_hp,
+            'alamat' => $alamat,
+            'no_rek' => $no_rek,
+            'bank' => $bank,
+            'atas_nama' => $atas_nama,
             'kota_kecelakaan' => $kota_kecelakaan,
             'tgl_kecelakaan' => $tgl_kecelakaan,
             'kat_santunan' => $kat_santunan,
@@ -124,19 +143,21 @@ class SimpatikController extends Controller
             'berdampak_cacat' => $berdampak_cacat,
             'rincian_penyebabnya' => $rincian_penyebabnya,
             'meninggal_rincian_penyebabnya' => $meninggal_rincian_penyebabnya,
+            'no_hp_dokter' => $no_hp_dokter,
+            'no_ref_dokter' => $no_ref_dokter,
             'is_agree' => $is_agree,
             "created_at" => $tgl,
             "status" => 1,
         );
 
-        if (!empty($nama_dokter)) {
-            $nama = 'nama_dokter';
+        if (!empty($photo_ktp)) {
+            $nama = 'photo_ktp';
             if (strlen($nama) > 32) $nama = substr($nama, 0, 32);
             $nama = strtolower($nama);
             $nama_file = $_tgl . '' . $nama;
             $nama_file = Crypt::encryptString($nama_file);
-            $fileSize = $nama_dokter->getSize();
-            $extension = $nama_dokter->getClientOriginalExtension();
+            $fileSize = $photo_ktp->getSize();
+            $extension = $photo_ktp->getClientOriginalExtension();
             $imageName = $nama_file . '.' . $extension;
             $tujuan_upload = 'uploads/simpatik';
             $_extension = array('png', 'jpg', 'jpeg');
@@ -149,26 +170,26 @@ class SimpatikController extends Controller
                 return response($result);
                 return false;
             }
-            // if (!in_array($extension, $_extension)) {
-            // $result = array(
-            // 'err_code'  => '07',
-            // 'err_msg'   => 'file extension not valid',
-            // 'data'      => null
-            // );
-            // return response($result);
-            // return false;
-            // }
-            $nama_dokter->move($tujuan_upload, $imageName);
-            $data += array("nama_dokter" => env('APP_URL') . '/api_cni/uploads/simpatik/' . $imageName);
+            if (!in_array($extension, $_extension)) {
+                $result = array(
+                    'err_code' => '07',
+                    'err_msg' => 'file extension not valid',
+                    'data' => null
+                );
+                return response($result);
+                return false;
+            }
+            $photo_ktp->move($tujuan_upload, $imageName);
+            $data += array("photo_ktp" => env('APP_URL') . '/api_cni/uploads/simpatik/' . $imageName);
         }
-        if (!empty($no_ref_dokter)) {
-            $nama = 'no_ref_dokter';
+        if (!empty($photo_kk)) {
+            $nama = 'photo_kk';
             if (strlen($nama) > 32) $nama = substr($nama, 0, 32);
             $nama = strtolower($nama);
             $nama_file = $_tgl . '' . $nama;
             $nama_file = Crypt::encryptString($nama_file);
-            $fileSize = $no_ref_dokter->getSize();
-            $extension = $no_ref_dokter->getClientOriginalExtension();
+            $fileSize = $photo_kk->getSize();
+            $extension = $photo_kk->getClientOriginalExtension();
             $imageName = $nama_file . '.' . $extension;
             $tujuan_upload = 'uploads/simpatik';
             $_extension = array('png', 'jpg', 'jpeg');
@@ -181,17 +202,26 @@ class SimpatikController extends Controller
                 return response($result);
                 return false;
             }
-            $no_ref_dokter->move($tujuan_upload, $imageName);
-            $data += array("no_ref_dokter" => env('APP_URL') . '/api_cni/uploads/simpatik/' . $imageName);
+            if (!in_array($extension, $_extension)) {
+                $result = array(
+                    'err_code' => '07',
+                    'err_msg' => 'file extension not valid',
+                    'data' => null
+                );
+                return response($result);
+                return false;
+            }
+            $photo_kk->move($tujuan_upload, $imageName);
+            $data += array("photo_kk" => env('APP_URL') . '/api_cni/uploads/simpatik/' . $imageName);
         }
-        if (!empty($no_hp_dokter)) {
-            $nama = 'no_hp_dokter';
+        if (!empty($suket_asli_kecelakaan)) {
+            $nama = 'suket_asli_kecelakaan';
             if (strlen($nama) > 32) $nama = substr($nama, 0, 32);
             $nama = strtolower($nama);
             $nama_file = $_tgl . '' . $nama;
             $nama_file = Crypt::encryptString($nama_file);
-            $fileSize = $no_hp_dokter->getSize();
-            $extension = $no_hp_dokter->getClientOriginalExtension();
+            $fileSize = $suket_asli_kecelakaan->getSize();
+            $extension = $suket_asli_kecelakaan->getClientOriginalExtension();
             $imageName = $nama_file . '.' . $extension;
             $tujuan_upload = 'uploads/simpatik';
             $_extension = array('png', 'jpg', 'jpeg');
@@ -204,9 +234,115 @@ class SimpatikController extends Controller
                 return response($result);
                 return false;
             }
-            $no_hp_dokter->move($tujuan_upload, $imageName);
-            $data += array("no_hp_dokter" => env('APP_URL') . '/api_cni/uploads/simpatik/' . $imageName);
+            if (!in_array($extension, $_extension)) {
+                $result = array(
+                    'err_code' => '07',
+                    'err_msg' => 'file extension not valid',
+                    'data' => null
+                );
+                return response($result);
+                return false;
+            }
+            $suket_asli_kecelakaan->move($tujuan_upload, $imageName);
+            $data += array("suket_asli_kecelakaan" => env('APP_URL') . '/api_cni/uploads/simpatik/' . $imageName);
         }
+        if (!empty($kwitansi_asli_biaya)) {
+            $nama = 'kwitansi_asli_biaya';
+            if (strlen($nama) > 32) $nama = substr($nama, 0, 32);
+            $nama = strtolower($nama);
+            $nama_file = $_tgl . '' . $nama;
+            $nama_file = Crypt::encryptString($nama_file);
+            $fileSize = $kwitansi_asli_biaya->getSize();
+            $extension = $kwitansi_asli_biaya->getClientOriginalExtension();
+            $imageName = $nama_file . '.' . $extension;
+            $tujuan_upload = 'uploads/simpatik';
+            $_extension = array('png', 'jpg', 'jpeg');
+            if ($fileSize > 2099200) { // satuan bytes
+                $result = array(
+                    'err_code' => '07',
+                    'err_msg' => 'file size over 2048',
+                    'data' => $fileSize
+                );
+                return response($result);
+                return false;
+            }
+            if (!in_array($extension, $_extension)) {
+                $result = array(
+                    'err_code' => '07',
+                    'err_msg' => 'file extension not valid',
+                    'data' => null
+                );
+                return response($result);
+                return false;
+            }
+            $kwitansi_asli_biaya->move($tujuan_upload, $imageName);
+            $data += array("kwitansi_asli_biaya" => env('APP_URL') . '/api_cni/uploads/simpatik/' . $imageName);
+        }
+        if (!empty($resep_dokter)) {
+            $nama = 'resep_dokter';
+            if (strlen($nama) > 32) $nama = substr($nama, 0, 32);
+            $nama = strtolower($nama);
+            $nama_file = $_tgl . '' . $nama;
+            $nama_file = Crypt::encryptString($nama_file);
+            $fileSize = $resep_dokter->getSize();
+            $extension = $resep_dokter->getClientOriginalExtension();
+            $imageName = $nama_file . '.' . $extension;
+            $tujuan_upload = 'uploads/simpatik';
+            $_extension = array('png', 'jpg', 'jpeg');
+            if ($fileSize > 2099200) { // satuan bytes
+                $result = array(
+                    'err_code' => '07',
+                    'err_msg' => 'file size over 2048',
+                    'data' => $fileSize
+                );
+                return response($result);
+                return false;
+            }
+            if (!in_array($extension, $_extension)) {
+                $result = array(
+                    'err_code' => '07',
+                    'err_msg' => 'file extension not valid',
+                    'data' => null
+                );
+                return response($result);
+                return false;
+            }
+            $resep_dokter->move($tujuan_upload, $imageName);
+            $data += array("resep_dokter" => env('APP_URL') . '/api_cni/uploads/simpatik/' . $imageName);
+        }
+        if (!empty($suket_meninggal)) {
+            $nama = 'suket_meninggal';
+            if (strlen($nama) > 32) $nama = substr($nama, 0, 32);
+            $nama = strtolower($nama);
+            $nama_file = $_tgl . '' . $nama;
+            $nama_file = Crypt::encryptString($nama_file);
+            $fileSize = $suket_meninggal->getSize();
+            $extension = $suket_meninggal->getClientOriginalExtension();
+            $imageName = $nama_file . '.' . $extension;
+            $tujuan_upload = 'uploads/simpatik';
+            $_extension = array('png', 'jpg', 'jpeg');
+            if ($fileSize > 2099200) { // satuan bytes
+                $result = array(
+                    'err_code' => '07',
+                    'err_msg' => 'file size over 2048',
+                    'data' => $fileSize
+                );
+                return response($result);
+                return false;
+            }
+            if (!in_array($extension, $_extension)) {
+                $result = array(
+                    'err_code' => '07',
+                    'err_msg' => 'file extension not valid',
+                    'data' => null
+                );
+                return response($result);
+                return false;
+            }
+            $suket_meninggal->move($tujuan_upload, $imageName);
+            $data += array("suket_meninggal" => env('APP_URL') . '/api_cni/uploads/simpatik/' . $imageName);
+        }
+
         $id = DB::table('simpatik')->insertGetId($data, "id");
         $result = array();
         if ($id > 0) {
