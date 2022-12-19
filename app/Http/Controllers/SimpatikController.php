@@ -38,14 +38,14 @@ class SimpatikController extends Controller
         $_data = array();
         $data = null;
         if (!empty($keyword)) {
-            $_data = DB::table('simpatik')->select('simpatik.*', 'members.nama', 'members.cni_id', 'members.phone', 'city.city_name as nama_kota_kecelakaan')->where($where)->whereRaw("LOWER(members.nama) like '%" . $keyword . "%'")->leftJoin('members', 'members.id_member', '=', 'simpatik.id_member')->leftJoin('city', 'city.id_city', '=', 'simpatik.kota_kecelakaan')->get();
+            $_data = DB::table('simpatik')->select('simpatik.*', 'city.city_name as nama_kota_kecelakaan')->where($where)->whereRaw("LOWER(members.nama) like '%" . $keyword . "%'")->leftJoin('city', 'city.id_city', '=', 'simpatik.kota_kecelakaan')->get();
             $count = count($_data);
         } else {
             $count = DB::table('simpatik')->where($where)->count();
             //$count = count($ttl_data);
             $per_page = $per_page > 0 ? $per_page : $count;
             $offset = ($page_number - 1) * $per_page;
-            $_data = DB::table('simpatik')->select('simpatik.*', 'members.nama', 'members.cni_id', 'members.phone', 'city.city_name as nama_kota_kecelakaan')->where($where)->leftJoin('members', 'members.id_member', '=', 'simpatik.id_member')->leftJoin('city', 'city.id_city', '=', 'simpatik.kota_kecelakaan')->offset($offset)->limit($per_page)->orderBy($sort_column, $sort_order)->get();
+            $_data = DB::table('simpatik')->select('simpatik.*', 'city.city_name as nama_kota_kecelakaan')->where($where)->leftJoin('city', 'city.id_city', '=', 'simpatik.kota_kecelakaan')->offset($offset)->limit($per_page)->orderBy($sort_column, $sort_order)->get();
         }
         $result = array(
             'err_code' => '04',
@@ -76,8 +76,9 @@ class SimpatikController extends Controller
         $_tgl = date('YmdHi');
         $data = array();
         $id_member = (int)$request->id_member > 0 ? (int)$request->id_member : 0;
+        $cni_id = $request->cni_id ? $request->cni_id : '';
         $nama_mitra = $request->nama_mitra ? $request->nama_mitra : '';
-        $no_hp = $request->no_hp ? $request->no_hp : '';
+        $phone = $request->phone ? $request->phone : '';
         $alamat = $request->alamat ? $request->alamat : '';
         $no_rek = $request->no_rek ? $request->no_rek : '';
         $bank = $request->bank ? $request->bank : '';
@@ -126,8 +127,9 @@ class SimpatikController extends Controller
 
         $data = array(
             'id_member' => $id_member,
-            'nama_mitra' => $id_member,
-            'no_hp' => $no_hp,
+            'cni_id' => $cni_id,
+            'nama_mitra' => $nama_mitra,
+            'phone' => $phone,
             'alamat' => $alamat,
             'no_rek' => $no_rek,
             'bank' => $bank,
@@ -143,6 +145,7 @@ class SimpatikController extends Controller
             'berdampak_cacat' => $berdampak_cacat,
             'rincian_penyebabnya' => $rincian_penyebabnya,
             'meninggal_rincian_penyebabnya' => $meninggal_rincian_penyebabnya,
+            'nama_dokter' => $nama_dokter,
             'no_hp_dokter' => $no_hp_dokter,
             'no_ref_dokter' => $no_ref_dokter,
             'is_agree' => $is_agree,
@@ -345,6 +348,7 @@ class SimpatikController extends Controller
 
         $id = DB::table('simpatik')->insertGetId($data, "id");
         $result = array();
+        $data += array('id'=>$id);
         if ($id > 0) {
             $result = array(
                 'err_code' => '00',
@@ -367,7 +371,7 @@ class SimpatikController extends Controller
         $_data = array();
         $id_member = (int)$request->id_member > 0 ? (int)$request->id_member : 0;
         $where = array('simpatik.id_member' => $id_member);
-        $_data = DB::table('simpatik')->select('simpatik.*', 'members.nama', 'members.cni_id', 'city.city_name as nama_kota_kecelakaan')->where($where)->leftJoin('members', 'members.id_member', '=', 'simpatik.id_member')->leftJoin('city', 'city.id_city', '=', 'simpatik.kota_kecelakaan')->get();
+        $_data = DB::table('simpatik')->select('simpatik.*', 'city.city_name as nama_kota_kecelakaan')->where($where)->leftJoin('city', 'city.id_city', '=', 'simpatik.kota_kecelakaan')->get();
         $result = array(
             'err_code' => '04',
             'err_msg' => 'data not found',
@@ -389,7 +393,7 @@ class SimpatikController extends Controller
         $_data = array();
         $id = (int)$request->id > 0 ? (int)$request->id : 0;
         $where = array('simpatik.id' => $id);
-        $_data = DB::table('simpatik')->select('simpatik.*', 'members.nama', 'members.cni_id', 'members.phone', 'city.city_name as nama_kota_kecelakaan')->where($where)->leftJoin('members', 'members.id_member', '=', 'simpatik.id_member')->leftJoin('city', 'city.id_city', '=', 'simpatik.kota_kecelakaan')->first();
+        $_data = DB::table('simpatik')->select('simpatik.*', 'city.city_name as nama_kota_kecelakaan')->where($where)->leftJoin('city', 'city.id_city', '=', 'simpatik.kota_kecelakaan')->first();
         $result = array(
             'err_code' => '00',
             'err_msg' => 'ok',

@@ -74,7 +74,7 @@ class BlastController extends Controller
         $tgl = date('Y-m-d H:i:s');
         $data = array();
         $id_product = $request->has('id_product') && (int)$request->id_product > 0 ? (int)$request->id_product : 0;
-        $content = $request->has('content') ? $request->content : '';
+        $content = $request->has('isi') ? $request->isi : '';
         $tujuan = $request->has('tujuan') ? $request->tujuan : 'Semua pengguna';
         $data_product = DB::table('product')->select('product.product_name', 'product.kode_produk')->where(array('id_product' => $id_product))->first();
         $product_name = (int)$request->id_product > 0 ? $data_product->product_name : "Tidak ada";

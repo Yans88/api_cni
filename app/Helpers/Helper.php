@@ -471,7 +471,7 @@ class Helper
             "totalwallet" => (int)$_data->ewallet > 0 ? $_data->ewallet : 0,
             "totalbayar" => (int)$_data->nominal_doku > 0 ? $_data->nominal_doku : 0,
             "tipe_payment" => $_data->payment_name,
-            "voucherid" => $_data->id_voucher,
+            "voucherid" => $_data->kode_voucher,
             "vouchervalue" => $pot_voucher,
             "voucherproduk" => $voucherproduk,
             "tipemember" => $tipemember,
