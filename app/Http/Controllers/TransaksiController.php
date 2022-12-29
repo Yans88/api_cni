@@ -81,8 +81,9 @@ class TransaksiController extends Controller
         $data_admin = DB::table('admin')->where('id_admin', $id_operator)->first();
         $id_level = isset($data_admin) ? (int)$data_admin->id_level : 0;
         $id_wh = isset($data_admin) ? (int)$data_admin->id_wh : 0;
+        $id_level = $id_level == 25 ? 1 : $id_level;
         if ($id_level > 1 && $id_wh > 0) {
-            $where += array('transaksi.id_wh' => $id_wh);
+            $where += array('transaksi.id_wh' => $id_wh, 'transaksi.iddc' => 0);
         }
         if ($id_wh > 0 || $id_level == 1) {
             if (!empty($keyword)) {
@@ -210,6 +211,7 @@ class TransaksiController extends Controller
         $tipe_dc = !empty($request->tipe) ? $request->tipe : '';
         $jneorigin = !empty($request->jneorigin) ? $request->jneorigin : '';
         $etd = !empty($request->etd) ? $request->etd : '';
+        $alamat_dc = !empty($request->alamat_dc) ? $request->alamat_dc : '';
 
         $is_regmitra = (int)$request->is_regmitra > 0 ? (int)$request->is_regmitra : 0;
         $is_upgrade = (int)$request->is_upgrade > 0 ? (int)$request->is_upgrade : 0;
@@ -359,24 +361,6 @@ class TransaksiController extends Controller
             $logistic_name = "";
             $service_code = "";
             $ongkir = 0;
-            $data_address->label_alamat = "";
-            $data_address->nama_penerima = "";
-            $data_address->phone_penerima = "";
-            $data_address->id_provinsi = "";
-            $data_address->id_city = "";
-            $data_address->id_kec = "";
-            $data_address->alamat = "";
-            $data_address->kode_pos = "";
-            $data_address->provinsi_name = "";
-            $data_address->kode_jne_prov = "";
-            $data_address->kode_lp_prov = "";
-            $data_address->city_name = "";
-            $data_address->kode_jne_city = "";
-            $data_address->kode_lp_city = "";
-            $data_address->kec_name = "";
-            $data_address->kode_jne_kec = "";
-            $data_address->kode_lp_kec = "";
-
             if ($type_voucher == 1) {
                 $id_voucher = "";
                 $kode_voucher = "";
@@ -464,29 +448,27 @@ class TransaksiController extends Controller
             "is_upgrade" => $is_upgrade,
             "token_mitra" => $token_mitra,
             "etd" => $etd,
+            "alamat_dc" => $alamat_dc,
+            "service_code" => $service_code,
+            "label_alamat" => $data_address->label_alamat,
+            "nama_penerima" => $data_address->nama_penerima,
+            "phone_penerima" => $data_address->phone_penerima,
+            "id_provinsi" => $data_address->id_provinsi,
+            "id_city" => $data_address->id_city,
+            "id_kec" => $data_address->id_kec,
+            "alamat" => $data_address->alamat,
+            "kode_pos" => $data_address->kode_pos,
+            "provinsi_name" => $data_address->provinsi_name,
+            "kode_jne_prov" => $data_address->kode_jne_prov,
+            "kode_lp_prov" => $data_address->kode_lp_prov,
+            "city_name" => $data_address->city_name,
+            "kode_jne_city" => $data_address->kode_jne_city,
+            "kode_lp_city" => $data_address->kode_lp_city,
+            "kec_name" => $data_address->kec_name,
+            "kode_jne_kec" => $data_address->kode_jne_kec,
+            "kode_lp_kec" => $data_address->kode_lp_kec,
         );
-        if ($tipe_pengiriman != 1) {
-            $dt_trans += array(
-                "service_code" => $service_code,
-                "label_alamat" => $data_address->label_alamat,
-                "nama_penerima" => $data_address->nama_penerima,
-                "phone_penerima" => $data_address->phone_penerima,
-                "id_provinsi" => $data_address->id_provinsi,
-                "id_city" => $data_address->id_city,
-                "id_kec" => $data_address->id_kec,
-                "alamat" => $data_address->alamat,
-                "kode_pos" => $data_address->kode_pos,
-                "provinsi_name" => $data_address->provinsi_name,
-                "kode_jne_prov" => $data_address->kode_jne_prov,
-                "kode_lp_prov" => $data_address->kode_lp_prov,
-                "city_name" => $data_address->city_name,
-                "kode_jne_city" => $data_address->kode_jne_city,
-                "kode_lp_city" => $data_address->kode_lp_city,
-                "kec_name" => $data_address->kec_name,
-                "kode_jne_kec" => $data_address->kode_jne_kec,
-                "kode_lp_kec" => $data_address->kode_lp_kec,
-            );
-        }
+
 
         if ($id_voucher > 0 && empty($kodevoucher)) {
             $dt_trans += array(
@@ -1131,13 +1113,13 @@ class TransaksiController extends Controller
                     }
 
                     curl_close($ch);
-                     Log::info(serialize($componentSignature));
-                     Log::info(serialize($headers));
-                     Log::info(serialize($requestBody));
-                     Log::info('signature :' . $signature);
-                     Log::info('secretKey :' . $secretKey);
-                     Log::info('clientId : ' . $clientId);
-                     Log::info(serialize($result));
+                    Log::info(serialize($componentSignature));
+                    Log::info(serialize($headers));
+                    Log::info(serialize($requestBody));
+                    Log::info('signature :' . $signature);
+                    Log::info('secretKey :' . $secretKey);
+                    Log::info('clientId : ' . $clientId);
+                    Log::info(serialize($result));
                     $data_result = json_decode($result);
                     $dt = isset($data_result->virtual_account_info) ? $data_result->virtual_account_info : '';
                     $key_payment = !empty($dt) ? $dt->virtual_account_number : '';

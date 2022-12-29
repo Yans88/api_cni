@@ -1765,7 +1765,7 @@ class MemberController extends Controller
 
     function history_notif(Request $request)
     {
-        $tgl = date('Y-m-d');
+        $tgl = date('Y-m-d',strtotime('+1 day'));
         $tgl = date('Y-m-d H:i:s', strtotime($tgl));
         $previousMonthLastDay = date("Y-m-d", strtotime("-3 months"));
         $previousMonthLastDay = date('Y-m-d H:i:s', strtotime($previousMonthLastDay));
@@ -1788,6 +1788,7 @@ class MemberController extends Controller
             'cnt_unread' => 0,
             'data' => null
         );
+        DB::connection()->enableQueryLog();
         if ($count > 0) {
             $data = DB::table('history_notif')->where($where)->whereBetween('created_at', [$previousMonthLastDay, $tgl])->orderByRaw($sort_column)->get();
             $result = array(
@@ -1798,6 +1799,7 @@ class MemberController extends Controller
                 'data' => $data
             );
         }
+
         return response($result);
     }
 

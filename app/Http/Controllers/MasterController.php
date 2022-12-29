@@ -912,6 +912,7 @@ class MasterController extends Controller
             }
             $ttl_weight = $_data->ttl_weight > 1000 ? $_data->ttl_weight / 1000 : 1;
             $ttl_weight = number_format((float)$ttl_weight, 1, '.', '');
+            $ttl_koli = $_data->ttl_weight > 10000 ? ceil($_data->ttl_weight / 10000) : 1;
 
             $where_wh = ['warehouse.deleted_at' => null, 'warehouse.id_wh' => $id_wh];
             $dt_wh = DB::table('warehouse')->select('warehouse.*', 'provinsi.kode_lp')->where($where_wh)->leftJoin('provinsi', 'provinsi.id_provinsi', '=', 'warehouse.id_prov')->first();
@@ -938,7 +939,7 @@ class MasterController extends Controller
             $xml_item->addChild('PRODUCT_TYPE', 'REGPACK');
             $xml_item->addChild('SERVICE_TYPE', 'PACKAGE');
             $xml_item->addChild('COMMODITY_TYPE', 'GENERAL');
-            $xml_item->addChild('NO_OF_PIECES', $ttl_qty);
+            $xml_item->addChild('NO_OF_PIECES', (int)$ttl_koli);
             $xml_item->addChild('GROSS_WEIGHT', (int)$ttl_weight);
             $xml_item->addChild('VOLUME_WEIGHT', (int)$ttl_weight);
             $xml_item->addChild('CODAMOUNT', 0);

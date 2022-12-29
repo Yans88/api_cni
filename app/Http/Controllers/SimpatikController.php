@@ -38,7 +38,7 @@ class SimpatikController extends Controller
         $_data = array();
         $data = null;
         if (!empty($keyword)) {
-            $_data = DB::table('simpatik')->select('simpatik.*', 'city.city_name as nama_kota_kecelakaan')->where($where)->whereRaw("LOWER(members.nama) like '%" . $keyword . "%'")->leftJoin('city', 'city.id_city', '=', 'simpatik.kota_kecelakaan')->get();
+            $_data = DB::table('simpatik')->select('simpatik.*', 'city.city_name as nama_kota_kecelakaan')->where($where)->whereRaw("(LOWER(nama_mitra) like '%" . $keyword . "%' or cni_id like '%" . $keyword . "%')")->leftJoin('city', 'city.id_city', '=', 'simpatik.kota_kecelakaan')->get();
             $count = count($_data);
         } else {
             $count = DB::table('simpatik')->where($where)->count();
@@ -348,7 +348,7 @@ class SimpatikController extends Controller
 
         $id = DB::table('simpatik')->insertGetId($data, "id");
         $result = array();
-        $data += array('id'=>$id);
+        $data += array('id' => $id);
         if ($id > 0) {
             $result = array(
                 'err_code' => '00',

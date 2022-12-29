@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Helpers\Helper;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class BlastController extends Controller
 {
@@ -93,6 +94,8 @@ class BlastController extends Controller
                 }
             }
         }
+        DB::connection()->enableQueryLog();
+        Log::info('start Blast notif');
         $data_notif = array(
             'id_product' => (int)$request->id_product > 0 ? $id_product : -1,
             'product_name' => $product_name,
@@ -127,8 +130,10 @@ class BlastController extends Controller
                 );
             }
             DB::table('history_notif')->insert($dt_insert_notif);
-        }
 
+            Log::info(DB::getQueryLog());
+        }
+        Log::info('end Blast notif');
         $data_fcm = array(
             'id' => $id_product,
             'title' => 'CNI',

@@ -667,6 +667,7 @@ class Helper
         $target = array();
         if (!empty($fcm_token)) {
             foreach ($fcm_token as $dt) {
+                Log::info(serialize($dt->token_fcm));
                 array_push($target, $dt->token_fcm);
             }
             $fields['registration_ids'] = $target;
@@ -701,8 +702,10 @@ class Helper
         $result = array();
         $fields['data'] = $data_fcm;
         $fields['notification'] = $notif_fcm;
+
         if (!empty($targets)) {
             $fields['registration_ids'] = $targets;
+            Log::info($fields);
             $headers = array(
                 'Content-Type:application/json',
                 'Authorization:key=' . $server_key

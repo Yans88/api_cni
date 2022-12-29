@@ -763,7 +763,7 @@ class ProductController extends Controller
             $data += array("updated_at" => $tgl, "updated_by" => $request->id_operator);
             DB::table('pricelist')->where('id_pricelist', $id)->update($data);
         } else {
-            $data += array("created_at" => $tgl, "created_by" => $request->id_operator, 'is_sold_out' => 0);
+            $data += array("created_at" => $tgl, "created_by" => $request->id_operator);
             $id = DB::table('pricelist')->insertGetId($data, "id_pricelist");
         }
         //Log::info(DB::getQueryLog());
@@ -1028,15 +1028,16 @@ class ProductController extends Controller
             $sudah_beli = [];
             $data = [];
             $sql = "select id_product, limit_pembelian, start_date, end_date from limit_pembelian
-            where id_product in (" . $_whereIn . ") and deleted_at is null and to_char(start_date, 'YYYY-MM-DD') <= '" . $tgl . "' and to_char(end_date, 'YYYY-MM-DD') >= '" . $tgl . "'";
+            where id_product in (" . $_whereIn . ") and deleted_at is null and to_char(start_date, 'YYYY-MM-DD HH24:MI') <= '" . $tgl . "' and to_char(end_date, 'YYYY-MM-DD HH24:MI') >= '" . $tgl . "'";
+            Log::info($sql);
             $limit_pembelian = DB::select(DB::raw($sql));
             if (!empty($limit_pembelian)) {
                 foreach ($limit_pembelian as $lp) {
                     $dt_limit_beli[$lp->id_product] = (int)$lp->limit_pembelian;
-                    $from = date('Y-m-d',strtotime($lp->start_date));
-                    $to =  date('Y-m-d',strtotime($lp->end_date));
+                    $from = date('Y-m-d H:i',strtotime($lp->start_date));
+                    $to =  date('Y-m-d H:i',strtotime($lp->end_date));
                     $sql_jml_beli = "select sum(jml) as jml_beli from transaksi_detail left join transaksi on transaksi_detail.id_trans = transaksi.id_transaksi where id_member =$id_member
-                                 and id_product=$lp->id_product and transaksi.status in(0,1,2,3,4,5) and to_char(transaksi.created_at, 'YYYY-MM-DD') >= '" . $from . "' and to_char(transaksi.created_at, 'YYYY-MM-DD') <= '" . $to . "'";
+                                 and id_product=$lp->id_product and transaksi.status in(0,1,2,3,4,5) and to_char(transaksi.created_at, 'YYYY-MM-DD HH24:MI') >= '" . $from . "' and to_char(transaksi.created_at, 'YYYY-MM-DD HH24:MI') <= '" . $to . "'";
                     Log::info($sql_jml_beli);
 					$cek_jml_beli = DB::select(DB::raw($sql_jml_beli));
                     $sudah_beli[$lp->id_product] = isset($cek_jml_beli) && (int)$cek_jml_beli[0]->jml_beli > 0 ? (int)$cek_jml_beli[0]->jml_beli : 0;
