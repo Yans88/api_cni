@@ -6,6 +6,7 @@ use App\Helpers\Helper;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -446,7 +447,7 @@ class TransaksiController extends Controller
             "is_rne25" => 0,
             "is_regmitra" => $is_regmitra,
             "is_upgrade" => $is_upgrade,
-            "token_mitra" => $token_mitra,
+            "token_mitra" => !empty($token_mitra) ? Crypt::decryptString($token_mitra) : '',
             "etd" => $etd,
             "alamat_dc" => $alamat_dc,
             "service_code" => $service_code,

@@ -416,4 +416,113 @@ class ReportController extends Controller
         }
         return response($result);
     }
+
+    public function export_logistik(Request $request)
+    {
+        $tgl = Carbon::now();
+        $id_operator = (int)$request->id_operator > 0 ? (int)$request->id_operator : 0;
+        $per_page = (int)$request->per_page > 0 ? (int)$request->per_page : 0;
+        $sort_column = !empty($request->sort_column) ? $request->sort_column : 'id_transaksi';
+        $sort_order = !empty($request->sort_order) ? $request->sort_order : 'ASC';
+        $page_number = (int)$request->page_number > 0 ? (int)$request->page_number : 1;
+        $status = (int)$request->status >= 0 ? (int)$request->status : -1;
+        $column_int = array("id_transaksi");
+        if (in_array($sort_column, $column_int)) $sort_column = $sort_column . "::integer";
+        $sort_column = $sort_column . " " . $sort_order;
+
+        $from = !empty($request->start_date) ? date('Y-m-d', strtotime($request->start_date)) : '';
+        $to = !empty($request->end_date) ? date('Y-m-d', strtotime($request->end_date)) : $from;
+        $from = empty($from) && !empty($to) ? $to : $from;
+        $to = empty($to) && !empty($from) ? $from : $to;
+
+        $cnote_no = !empty($request->cnote) ? $request->cnote : '';
+
+        $count = 0;
+        $_data = array();
+        $data = null;
+        $sql = '';
+        $sql = "select transaksi.id_transaksi,transaksi.created_at,transaksi.type_member,transaksi.payment_name,
+       members.nama as nama_member,transaksi.wh_name as kode_wh, transaksi.status, transaksi.logistic_name as ekspedisi, transaksi.sub_tll,
+       transaksi.ongkir, transaksi.cnote_no as tracking_code,delivery_date as finish_pack,admin.name as pack_by
+       from transaksi left join admin on admin.id_admin = transaksi.delivery_by
+				left join members on members.id_member = transaksi.id_member where 1=1 ";
+
+        if ($status >= 0) {
+            $sql .= " and transaksi.status = " . $status;
+        }
+        if (!empty($from)) {
+            $sql .= " and to_char(transaksi.created_at, 'YYYY-MM-DD') >= '" . $from . "' and to_char(transaksi.created_at, 'YYYY-MM-DD') <= '" . $to . "'";
+        }
+
+        if (!empty($from)) {
+            $sql .= " and transaksi.cnote_no = " . $cnote_no;
+        }
+
+        $_dataa = DB::select(DB::raw($sql));
+        $count = count($_dataa);
+
+        $result = array(
+            'err_code' => '04',
+            'err_msg' => 'data not found',
+            'total_data' => $count,
+            'data' => null
+        );
+        if ($count > 0) {
+            $per_page = $per_page > 0 ? $per_page : $count;
+            $offset = ($page_number - 1) * $per_page;
+            $sql .= " order by $sort_column";
+            $_data = DB::select(DB::raw($sql));
+
+
+            $pc = array(29, 32, 33, 34, 36);
+            foreach ($_data as $d) {
+                $created_at = !empty($d->created_at) ? date('d/m/Y', strtotime($d->created_at)) : '';
+                $finish_pack = !empty($d->finish_pack) ? date('d/m/Y', strtotime($d->finish_pack)) : '';
+                $sub_ttl = 1 * $d->sub_ttl;
+                $ongkir = 1 * $d->ongkir;
+
+                $type_member = '-';
+                if ((int)$d->type_member == 1) $type_member = "Member";
+                if ((int)$d->type_member == 2) $type_member = "Konsumen";
+                if ((int)$d->type_member == 3) $type_member = "Reseller";
+
+                unset($d->sub_ttl);
+                unset($d->created_at);
+                unset($d->finish_pack);
+                unset($d->type_member);
+
+                $status_name = '-';
+                $status_pack = 'N';
+                if ((int)$d->status == 0) $status_name = "Waiting Payment";
+                if ((int)$d->status == 1) $status_name = "Payment Completed";
+                if ((int)$d->status == 2) $status_name = "Expired";
+                if ((int)$d->status == 3) $status_name = "On Process";
+                if ((int)$d->status == 95678) $status_name = "Hold";
+                if ((int)$d->status == 4) {
+                    $status_name = "Dikirim";
+                    $status_pack = 'Y';
+                }
+                if ((int)$d->status == 5) {
+                    $status_name = "Completed";
+                    $status_pack = 'Y';
+                }
+
+                $d->ongkir = (int)$ongkir > 0 ? $ongkir : "";
+                $d->sub_ttl = $sub_ttl;
+                $d->created_at = $created_at;
+                $d->finish_pack = $finish_pack;
+                $d->status_name = $status_name;
+                $d->status_pack = $status_pack;
+                $d->type_member = $type_member;
+                $data[] = $d;
+            }
+            $result = array(
+                'err_code' => '00',
+                'err_msg' => 'ok',
+                'total_data' => $count,
+                'data' => $data
+            );
+        }
+        return response($result);
+    }
 }

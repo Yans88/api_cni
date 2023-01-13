@@ -218,6 +218,7 @@ $router->post('/report', 'ReportController@index');
 $router->post('/export_header', 'ReportController@export_header');
 $router->post('/report_detail', 'ReportController@detail');
 $router->post('/export_detail', 'ReportController@export_detail');
+$router->post('/export_detail', 'ReportController@export_detail');
 
 $router->post('/redirect', 'DokuController@redirect_va');
 $router->post('/notify', 'DokuController@notify');

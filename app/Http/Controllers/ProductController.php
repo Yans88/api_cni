@@ -508,7 +508,10 @@ class ProductController extends Controller
             if ((int)$cnt_ulasan > 0) {
                 $sort_column = 'tgl_ulasan';
                 $sort_order = 'DESC';
-                $data_ulasan = DB::table('transaksi_detail')->select('rating', 'ulasan', 'img_ulasan', 'tgl_ulasan')->where($where)->orderBy($sort_column, $sort_order)->get();
+                $data_ulasan = DB::table('transaksi_detail')->select('rating', 'ulasan', 'img_ulasan', 'tgl_ulasan', 'members.nama as nama_member')
+                    ->leftJoin('transaksi', 'transaksi.id_transaksi', '=', 'transaksi_detail.id_trans')
+                    ->leftJoin('members', 'members.id_member', '=', 'transaksi.id_member')
+                    ->where($where)->orderBy($sort_column, $sort_order)->get();
             }
             $sql_limit = "select id_lp,id_product, limit_pembelian, start_date::timestamp, end_date::timestamp from limit_pembelian
             where deleted_at is null and id_product = $id and ((start_date::timestamp <= '" . $tgl . "' and end_date::timestamp >= '" . $tgl . "') or (start_date::timestamp >= '" . $tgl . "' and end_date::timestamp <= '" . $tgl . "'))";
@@ -1034,12 +1037,12 @@ class ProductController extends Controller
             if (!empty($limit_pembelian)) {
                 foreach ($limit_pembelian as $lp) {
                     $dt_limit_beli[$lp->id_product] = (int)$lp->limit_pembelian;
-                    $from = date('Y-m-d H:i',strtotime($lp->start_date));
-                    $to =  date('Y-m-d H:i',strtotime($lp->end_date));
+                    $from = date('Y-m-d H:i', strtotime($lp->start_date));
+                    $to = date('Y-m-d H:i', strtotime($lp->end_date));
                     $sql_jml_beli = "select sum(jml) as jml_beli from transaksi_detail left join transaksi on transaksi_detail.id_trans = transaksi.id_transaksi where id_member =$id_member
                                  and id_product=$lp->id_product and transaksi.status in(0,1,2,3,4,5) and to_char(transaksi.created_at, 'YYYY-MM-DD HH24:MI') >= '" . $from . "' and to_char(transaksi.created_at, 'YYYY-MM-DD HH24:MI') <= '" . $to . "'";
                     Log::info($sql_jml_beli);
-					$cek_jml_beli = DB::select(DB::raw($sql_jml_beli));
+                    $cek_jml_beli = DB::select(DB::raw($sql_jml_beli));
                     $sudah_beli[$lp->id_product] = isset($cek_jml_beli) && (int)$cek_jml_beli[0]->jml_beli > 0 ? (int)$cek_jml_beli[0]->jml_beli : 0;
                 }
             }
@@ -1063,7 +1066,7 @@ class ProductController extends Controller
                     'min_pembelian' => $min_pembelian,
                     'sudah_beli' => $sudahBeli,
                     'is_available' => (int)$list_item[$i]->jml >= $min_pembelian ? 1 : 0
-                   /* 'is_available' => (int)$list_item[$i]->jml <= $sisa_beli && (int)$list_item[$i]->jml >= $min_pembelian ? 1 : 0*/
+                    /* 'is_available' => (int)$list_item[$i]->jml <= $sisa_beli && (int)$list_item[$i]->jml >= $min_pembelian ? 1 : 0*/
                 );
             }
         } catch (Exception $e) {

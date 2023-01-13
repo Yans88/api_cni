@@ -41,7 +41,7 @@ class MemberController extends Controller
         $count = 0;
         $data = null;
         if (!empty($keyword)) {
-            $data = DB::table('members')->where($where)->whereRaw("LOWER(nama) like '%" . $keyword . "%'")->get()->toArray();
+            $data = DB::table('members')->where($where)->whereRaw("(LOWER(nama) like '%" . $keyword . "%' or cni_id like '%" . $keyword . "%')")->get()->toArray();
             $count = count($data);
         } else {
             $count = Members::where($where)->count();
@@ -186,6 +186,7 @@ class MemberController extends Controller
         if ($request->has('end_member') && !empty($request->end_member)) $data->end_member = date('Y-m-d H:i:s', strtotime($request->end_member));
         $data->ewallet = 0;
         $verify_code = rand(1000, 9999);
+        $verify_code = Crypt::encryptString($verify_code);
         $data->verify_phone = (int)$data->type == 2 ? $verify_code : 1;
         $data->verify_email = (int)$data->type == 2 ? $verify_code : 1;
         $data->pass = Crypt::encryptString(strtolower($request->pass));
@@ -285,7 +286,7 @@ class MemberController extends Controller
                 }
                 $content_member = $out['content_reg'];
                 $content = str_replace('[#name#]', $data->nama, $content_member);
-                $content = str_replace('[#kode_otp#]', $verify_code, $content);
+                $content = str_replace('[#kode_otp#]', Crypt::decryptString($verify_code), $content);
                 $data->content = $content;
                 Mail::send([], ['users' => $data], function ($message) use ($data) {
                     $message->to($data->email, $data->nama)->subject('Register')->setBody($data->content, 'text/html');
@@ -352,25 +353,27 @@ class MemberController extends Controller
             return response($result);
             return false;
         }
-        $where = ['deleted_at' => null, 'email' => $email, 'type' => 2];
+        $where = ['deleted_at' => null, 'email' => $email];
+        $whereIn = array(2);
         if (!empty($cni_id)) {
             $where = ['deleted_at' => null, 'cni_id' => $cni_id];
+            $whereIn = array(1, 3);
         }
 
-        $count = Members::where($where)->count();
+        $count = Members::where($where)->whereIn('type', $whereIn)->count();
         $result = array(
             'err_code' => '04',
             'err_msg' => 'incorrect email or password',
             'data' => null
         );
         if ($count > 0) {
-            $data = Members::where($where)->first();
+            $data = Members::where($where)->whereIn('type', $whereIn)->first();
             $password = Crypt::decryptString($data->pass);
             if ($pass == $password) {
                 unset($data->password);
                 unset($data->ewallet);
-                $type = (int)$data->type;
-                $cni_id = !empty($data->cni_id) ? $data->cni_id : '';
+                //$type = (int)$data->type;
+                //$cni_id = !empty($data->cni_id) ? $data->cni_id : '';
                 $res = 0;
                 // if ($type == 1 && !empty($cni_id)) {
                 // $data_ewallet = Helper::get_ewallet($cni_id, $request->all(),'login_member');
@@ -571,7 +574,8 @@ class MemberController extends Controller
             return false;
         }
         $data = Members::where('id_member', $id_member)->first();
-        if ($kode != (int)$data->verify_phone) {
+        $verify_phoneDecryptString = Crypt::decryptString($data->verify_phone);
+        if ($kode != (int)$verify_phoneDecryptString) {
             $result = array(
                 'err_code' => '02',
                 'err_msg' => 'incorrect verification code',
@@ -607,14 +611,14 @@ class MemberController extends Controller
             return response($result);
             return false;
         }
-        if (empty($data->verify_phone)) {
-            $verify_code = rand(1000, 9999);
-            $data->verify_phone = $verify_code;
-            $data->updated_at = $tgl;
-            $data->updated_by = $id_member;
-            $data->save();
-            //Helper::send_sms($data->phone, $verify_code);
-        }
+
+        $verify_code = rand(1000, 9999);
+        $data->verify_phone = Crypt::encryptString($verify_code);
+        $data->updated_at = $tgl;
+        $data->updated_by = $id_member;
+        $data->save();
+        //Helper::send_sms($data->phone, $verify_code);
+
         $setting = DB::table('setting')->get()->toArray();
         $out = array();
         if (!empty($setting)) {
@@ -625,7 +629,7 @@ class MemberController extends Controller
         $content_member = '';
         $content_member = $out['content_reg'];
         $content = str_replace('[#name#]', $data->nama, $content_member);
-        $content = str_replace('[#kode_otp#]', $data->verify_phone, $content);
+        $content = str_replace('[#kode_otp#]', $verify_code, $content);
         $data->content = $content;
         Mail::send([], ['users' => $data], function ($message) use ($data) {
             $message->to($data->email, $data->nama)->subject('Register')->setBody($data->content, 'text/html');
@@ -1765,7 +1769,7 @@ class MemberController extends Controller
 
     function history_notif(Request $request)
     {
-        $tgl = date('Y-m-d',strtotime('+1 day'));
+        $tgl = date('Y-m-d', strtotime('+1 day'));
         $tgl = date('Y-m-d H:i:s', strtotime($tgl));
         $previousMonthLastDay = date("Y-m-d", strtotime("-3 months"));
         $previousMonthLastDay = date('Y-m-d H:i:s', strtotime($previousMonthLastDay));
@@ -2478,7 +2482,7 @@ class MemberController extends Controller
             );
             $ch = curl_init();
             curl_setopt($ch, CURLOPT_URL, $url_path_doku . $targetPath);
-            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PATCH');
             curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
             curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($requestBody));

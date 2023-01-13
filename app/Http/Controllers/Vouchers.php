@@ -421,7 +421,7 @@ class Vouchers extends Controller
         $potongan = $request->has('potongan') ? str_replace(',', '', $request->potongan) : '';
         $max_potongan = $request->has('max_potongan') ? str_replace(',', '', $request->max_potongan) : '';
         $start_date = $request->has('start_date') ? date('Y-m-d H:i', strtotime($request->start_date)) : '';
-        $end_date = $request->has('end_date') ? date('Y-m-d H:i', strtotime($request->end_date)) : '';
+        $end_date = $request->has('end_date') ? date('Y-m-d H:i', strtotime($request->end_date.' 23:59')) : '';
         $tipe = $request->has('tipe') ? (int)$request->tipe : 0;
         $produk_utama = $request->has('produk_utama') ? (int)$request->produk_utama : 0;
         $produk_bonus = $request->has('produk_bonus') ? (int)$request->produk_bonus : 0;

@@ -62,7 +62,6 @@ class NewsController extends Controller
                 unset($d->created_by);
                 unset($d->updated_by);
                 unset($d->deleted_by);
-                unset($d->created_at);
                 unset($d->updated_at);
                 unset($d->deleted_at);
                 unset($d->img);
