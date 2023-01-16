@@ -748,8 +748,44 @@ class Helper
                 'message' => "Ada produk dikeranjang anda yang sudah siap dicheckout",
                 'type' => "cart"
             );
+            $notif_fcm = array(
+                'body' => 'Ada produk dikeranjang anda yang sudah siap dicheckout',
+                'title' => 'CNI',
+                'badge' => '1',
+                'sound' => 'Default'
+            );
             DB::table('cart')->whereIn('id_member', $whereIn)->update(array('will_be_notified_on_date' => $will_be_notified_on_date));
-            send_fcm_multiple($target,$data_fcm);
+
+            $url = 'https://fcm.googleapis.com/fcm/send';
+            $server_key = env('FCM_KEY');
+            $fields = array();
+            $result = array();
+            $fields['data'] = $data_fcm;
+            $fields['notification'] = $notif_fcm;
+
+            if (!empty($targets)) {
+                $fields['registration_ids'] = $targets;
+                Log::info($fields);
+                $headers = array(
+                    'Content-Type:application/json',
+                    'Authorization:key=' . $server_key
+                );
+                $ch = curl_init();
+                curl_setopt($ch, CURLOPT_URL, $url);
+                curl_setopt($ch, CURLOPT_POST, true);
+                curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+                curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+                curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($fields));
+                $result = curl_exec($ch);
+                if ($result === FALSE) {
+                    die('FCM Send Error: ' . curl_error($ch));
+                }
+                curl_close($ch);
+            }
+            Log::info($result);
+            return $result;
         }
         //return $sql;
     }
@@ -772,5 +808,6 @@ class Helper
             DB::table('share_product')->insert($where);
         }
     }
+
 
 }

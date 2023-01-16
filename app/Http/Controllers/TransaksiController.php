@@ -536,7 +536,8 @@ class TransaksiController extends Controller
 
             $sub_ttl = 0;
             $jdp = 0;
-
+            Log::info('start id_transaksi ' . $id_transaksi);
+            DB::connection()->enableQueryLog();
             if (count($_data) > 0) {
                 foreach ($_data as $dt) {
                     $harga = 0;
@@ -1168,7 +1169,7 @@ class TransaksiController extends Controller
 
                     DB::table('vouchers')->where('id_voucher', $id_voucher)->update($dt_voucher);
                 }
-                DB::connection()->enableQueryLog();
+
                 if ($id_voucher > 0) {
                     $where_voucher_member = array(
                         'id_voucher' => $id_voucher,
@@ -1192,6 +1193,7 @@ class TransaksiController extends Controller
                 }
                 Log::info(DB::getQueryLog());
                 DB::commit();
+                Log::info('disini DB:commit' . $id_transaksi);
                 if ($status == 1) Helper::send_order_cni($id_transaksi, 'transaksi', $is_upgrade);
                 if ($tipe_pengiriman == 3) Helper::upd_stok($upd_product);
                 if ((int)$is_regmitra <= 0) {
@@ -1232,16 +1234,44 @@ class TransaksiController extends Controller
 
                         $html .= '</tbody></table>';
 
-                        $data_email = array();
+                        $dt_insert_email = array();
                         $content_email_transaksi = str_replace('[#detail_pesanan#]', $html, $content_email_transaksi);
                         //Log::info($content_email_transaksi);
-                        $data_email['nama'] = $nama;
-                        $data_email['email'] = $email;
-                        $data_email['subject'] = 'Menunggu Pembayaran mCNI No Order ' . $id_transaksi;
-                        $data_email['content_email'] = $content_email_transaksi;
-                        Mail::send([], ['users' => $data_email], function ($message) use ($data_email) {
-                            $message->to($data_email['email'], $data_email['nama'])->subject($data_email['subject'])->setBody($data_email['content_email'], 'text/html');
-                        });
+                        /* $data_email['nama'] = $nama;
+                         $data_email['email'] = $email;
+                         $data_email['subject'] = 'Menunggu Pembayaran mCNI No Order ' . $id_transaksi;
+                         $data_email['content_email'] = $content_email_transaksi;*/
+
+                        $dt_insert_email = array(
+                            'id_transaksi' => $id_transaksi,
+                            'id_member' => $id_member,
+                            'nama' => $nama,
+                            'email' => $email,
+                            'content_email' => $content_email_transaksi,
+                            'subject' => 'Menunggu Pembayaran mCNI No Order ' . $id_transaksi,
+                            'status' => 1,
+                            "created_at" => $tgl,
+                            "updated_at" => $tgl,
+                        );
+                        DB::table('cron_email')->insert($dt_insert_email);
+                        /*try {
+                            Mail::send([], ['users' => $data_email], function ($message) use ($data_email) {
+                                $message->to($data_email['email'], $data_email['nama'])->subject($data_email['subject'])->setBody($data_email['content_email'], 'text/html');
+                            });
+                        } catch (Exception $ex) {
+                            Log::error($ex->getMessage());
+                            DB::rollback();
+                            DB::table('transaksi')->where('id_transaksi', $id_transaksi)->delete();
+                            DB::table('transaksi_detail')->where('id_trans', $id_transaksi)->delete();
+                            $result = array(
+                                'err_code' => '400',
+                                'err_msg' => $ex->getMessage(),
+                                'data' => $dt_trans
+                            );
+                            return response($result);
+                            return false;
+                        }*/
+
                     }
                     if ($status == 1) {
                         $key_payment = $payment == 2 ? $key_payment : '';
@@ -1269,13 +1299,25 @@ class TransaksiController extends Controller
 
                         $html .= '</tbody></table>';
 
-                        $data_email = array();
+                        $dt_insert_email = array();
                         $content_email_payment_complete = str_replace('[#detail_pesanan#]', $html, $content_email_payment_complete);
-                        Log::info($content_email_payment_complete);
+                        /*Log::info($content_email_payment_complete);
                         $data_email['nama'] = $nama;
                         $data_email['email'] = $email;
-                        $data_email['content_email'] = $content_email_payment_complete;
+                        $data_email['content_email'] = $content_email_payment_complete;*/
 
+                        $dt_insert_email = array(
+                            'id_transaksi' => $id_transaksi,
+                            'id_member' => $id_member,
+                            'nama' => $nama,
+                            'email' => $email,
+                            'content_email' => $content_email_payment_complete,
+                            'subject' => 'Pembayaran mCNI No Order ' . $id_transaksi,
+                            'status' => 1,
+                            "created_at" => $tgl,
+                            "updated_at" => $tgl,
+                        );
+                        DB::table('cron_email')->insert($dt_insert_email);
                         DB::connection()->enableQueryLog();
                         $notif_fcm = array(
                             'body' => 'Pembayaran anda sudah kami terima dan pesanan anda akan kami proses segera',
@@ -1303,10 +1345,23 @@ class TransaksiController extends Controller
                         );
                         Log::info(DB::getQueryLog());
                         Helper::send_fcm($id_member, $data_fcm, $notif_fcm);
-
-                        Mail::send([], ['users' => $data_email], function ($message) use ($data_email) {
-                            $message->to($data_email['email'], $data_email['nama'])->subject('Transaksi')->setBody($data_email['content_email'], 'text/html');
-                        });
+                        /*try {
+                            Mail::send([], ['users' => $data_email], function ($message) use ($data_email) {
+                                $message->to($data_email['email'], $data_email['nama'])->subject('Transaksi')->setBody($data_email['content_email'], 'text/html');
+                            });
+                        } catch (Exception $ex) {
+                            Log::error($ex->getMessage());
+                            DB::rollback();
+                            DB::table('transaksi')->where('id_transaksi', $id_transaksi)->delete();
+                            DB::table('transaksi_detail')->where('id_trans', $id_transaksi)->delete();
+                            $result = array(
+                                'err_code' => '400',
+                                'err_msg' => $ex->getMessage(),
+                                'data' => $dt_trans
+                            );
+                            return response($result);
+                            return false;
+                        }*/
 
 
                     }
@@ -1343,13 +1398,28 @@ class TransaksiController extends Controller
 
                     $data_email = array();
                     $content_email_hold_cust = str_replace('[#detail_pesanan#]', $html, $content_email_hold_cust);
-                    Log::info($content_email_hold_cust);
                     $data_email['nama'] = $nama;
                     $data_email['email'] = $email;
                     $data_email['content_email'] = $content_email_hold_cust;
-                    Mail::send([], ['users' => $data_email], function ($message) use ($data_email) {
-                        $message->to($data_email['email'], $data_email['nama'])->subject('Transaksi Mitra')->setBody($data_email['content_email'], 'text/html');
-                    });
+
+                    try {
+                        Mail::send([], ['users' => $data_email], function ($message) use ($data_email) {
+                            $message->to($data_email['email'], $data_email['nama'])->subject('Transaksi Mitra')->setBody($data_email['content_email'], 'text/html');
+                        });
+                    } catch (Exception $ex) {
+                        Log::error($ex->getMessage());
+                        DB::rollback();
+                        DB::table('transaksi')->where('id_transaksi', $id_transaksi)->delete();
+                        DB::table('transaksi_detail')->where('id_trans', $id_transaksi)->delete();
+                        $result = array(
+                            'err_code' => '400',
+                            'err_msg' => $ex->getMessage(),
+                            'data' => $dt_trans
+                        );
+                        return response($result);
+                        return false;
+                    }
+
                 }
 
 
@@ -1370,7 +1440,7 @@ class TransaksiController extends Controller
             'err_msg' => 'ok',
             'data' => $dt_trans
         );
-        Log::info("end transaksi");
+        Log::info("end id_transaksi " . $id_transaksi);
         return response($result);
     }
 

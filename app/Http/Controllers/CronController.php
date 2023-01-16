@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Helpers\Helper;
+use Exception;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -62,5 +63,38 @@ class CronController extends Controller
             'data_ewallet' => $data_ewallet
         );
         return response($result);
+    }
+
+    public function cron_send_email()
+    {
+        $dataCnt = DB::table('cron_email')->where('status', 1)->limit(10)->count();
+        if ((int)$dataCnt > 0) {
+            $setting = DB::table('setting')->get()->toArray();
+            $out = array();
+            if (!empty($setting)) {
+                foreach ($setting as $val) {
+                    $out[$val->setting_key] = $val->setting_val;
+                }
+            }
+            $data = DB::table('cron_email')->where('status', 1)->limit(10)->get();
+            foreach ($data as $d) {
+                $data_email = array();
+                $data_email['nama'] = $d->nama;
+                $data_email['email'] = $d->email;
+                $data_email['subject'] = $d->subject;
+                $data_email['content_email'] = $d->content_email;
+                try {
+                    $sendEmail = Mail::send([], ['users' => $data_email], function ($message) use ($data_email) {
+                        $message->to($data_email['email'], $data_email['nama'])->subject($data_email['subject'])->setBody($data_email['content_email'], 'text/html');
+                    });
+                    Log::info($sendEmail);
+                } catch (Exception $e) {
+                    Log::error('start cron Email :' . $d->id_transaksi);
+                    Log::error($e->getMessage());
+                    Log::error('start cron Email :' . $d->id_transaksi);
+                }
+            }
+        }
+
     }
 }

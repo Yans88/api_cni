@@ -218,7 +218,8 @@ $router->post('/report', 'ReportController@index');
 $router->post('/export_header', 'ReportController@export_header');
 $router->post('/report_detail', 'ReportController@detail');
 $router->post('/export_detail', 'ReportController@export_detail');
-$router->post('/export_detail', 'ReportController@export_detail');
+$router->post('/report_logistik', 'ReportController@logistik');
+$router->post('/export_logistik', 'ReportController@export_logistik');
 
 $router->post('/redirect', 'DokuController@redirect_va');
 $router->post('/notify', 'DokuController@notify');
@@ -229,6 +230,7 @@ $router->post('/notif_jokul', 'DokuController@notify_jokul');
 // $router->get('/payment_suite/{id}', 'DokuController@payment_cc');
 
 $router->get('/refund_ewallet', 'CronController@index');
+$router->get('/cron_send_email', 'CronController@cron_send_email');
 
 $router->post('/voucher', 'Vouchers@index');
 $router->post('/list_vouchers', 'Vouchers@get_list_vouchers');
