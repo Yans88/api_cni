@@ -2491,6 +2491,7 @@ class MemberController extends Controller
             if ($res === FALSE) {
                 die('Send Error: ' . curl_error($ch));
             }
+            Log::info($ch);
             Log::info('CURL Cancel Transaksi');
             Log::info('Request :');
             Log::info($requestBody);

@@ -6,6 +6,7 @@ use App\Helpers\Helper;
 use Exception;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 class CronController extends Controller
 {
@@ -67,6 +68,7 @@ class CronController extends Controller
 
     public function cron_send_email()
     {
+        $tgl = date('Y-m-d H:i:s');
         $dataCnt = DB::table('cron_email')->where('status', 1)->limit(10)->count();
         if ((int)$dataCnt > 0) {
             $setting = DB::table('setting')->get()->toArray();
@@ -84,14 +86,26 @@ class CronController extends Controller
                 $data_email['subject'] = $d->subject;
                 $data_email['content_email'] = $d->content_email;
                 try {
-                    $sendEmail = Mail::send([], ['users' => $data_email], function ($message) use ($data_email) {
+                    Mail::send([], ['users' => $data_email], function ($message) use ($data_email) {
                         $message->to($data_email['email'], $data_email['nama'])->subject($data_email['subject'])->setBody($data_email['content_email'], 'text/html');
                     });
-                    Log::info($sendEmail);
+                    if (count(Mail::failures()) > 0) {
+
+                        $output = "There was one or more failures. They were: \n";
+                        foreach (Mail::failures() as $email_address) {
+                            $output = $output . $email_address . "\n";
+                        }
+                        Log::error('failed send email => ' . $output);
+                    } else {
+                        Log::info('ok send email => ' . $d->id_transaksi);
+                        $where = array('id_transaksi' => $d->id_transaksi, 'status' => 1, 'id_member' => $d->id_member);
+                        DB::table('cron_email')->where($where)->update(array("status" => 2, "updated_at" => $tgl));
+                    }
+
                 } catch (Exception $e) {
                     Log::error('start cron Email :' . $d->id_transaksi);
                     Log::error($e->getMessage());
-                    Log::error('start cron Email :' . $d->id_transaksi);
+                    Log::error('end cron Email :' . $d->id_transaksi);
                 }
             }
         }

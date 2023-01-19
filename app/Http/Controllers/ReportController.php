@@ -278,7 +278,6 @@ class ReportController extends Controller
                 $d->ttl_rv = $ttl_rv;
 
                 //$d->ttl_disc = number_format($ttl_disc,2,",",".");
-                $d->pot_voucher = $pot_voucher;
                 $d->jpayment = $nominal_doku;
                 $d->created_at = $created_at;
                 $d->payment_date = $payment_date;
@@ -417,6 +416,7 @@ class ReportController extends Controller
         return response($result);
     }
 
+
     public function logistik(Request $request)
     {
         $tgl = Carbon::now();
@@ -456,16 +456,13 @@ class ReportController extends Controller
         }
 
         if (!empty($cnote_no)) {
-            $sql .= " and transaksi.cnote_no = " . $cnote_no;
-        }
-
-        if ($id_transaksi >= 0) {
-            $sql .= " and transaksi.id_transaksi = " . $id_transaksi;
+            $sql .= " and transaksi.cnote_no = '".$cnote_no."'";
         }
 
         if ($id_transaksi > 0) {
             $sql .= " and transaksi.id_transaksi = " . $id_transaksi;
         }
+
 
         $_dataa = DB::select(DB::raw($sql));
         $count = count($_dataa);
@@ -478,12 +475,12 @@ class ReportController extends Controller
         );
         if ($count > 0) {
             $per_page = $per_page > 0 ? $per_page : $count;
-            $offset = ($page_number - 1) * $per_page;
-            $sql .= " orders by $sort_column limit $per_page offset $offset";
+            $offset = !empty($cnote_no) ? 0 : ($page_number - 1) * $per_page;
+            $sql .= " order by $sort_column limit $per_page offset $offset";
             $_data = DB::select(DB::raw($sql));
 
             foreach ($_data as $d) {
-                $created_at = !empty($d->created_at) ? date('d/m/Y', strtotime($d->created_at)) : '';
+
                 $delivery_date = !empty($d->delivery_date) ? date('d/m/Y', strtotime($d->delivery_date)) : '';
                 $sub_ttl = 1 * $d->sub_ttl;
                 $ongkir = 1 * $d->ongkir;
@@ -495,7 +492,7 @@ class ReportController extends Controller
 
                 unset($d->sub_ttl);
                 unset($d->ongkir);
-                unset($d->created_at);
+
                 unset($d->delivery_date);
                 unset($d->type_member);
 
@@ -517,7 +514,7 @@ class ReportController extends Controller
 
                 $d->ongkir = (int)$ongkir > 0 ? $ongkir : "";
                 $d->sub_ttl = $sub_ttl;
-                $d->created_at = $created_at;
+
                 $d->delivery_date = $delivery_date;
                 $d->status_name = $status_name;
                 $d->status_pack = $status_pack;
@@ -533,6 +530,7 @@ class ReportController extends Controller
         }
         return response($result);
     }
+
 
     public function export_logistik(Request $request)
     {
@@ -565,6 +563,7 @@ class ReportController extends Controller
        from transaksi left join admin on admin.id_admin = transaksi.delivery_by
 				left join members on members.id_member = transaksi.id_member where 1=1 ";
 
+
         if ($status >= 0) {
             $sql .= " and transaksi.status = " . $status;
         }
@@ -573,8 +572,9 @@ class ReportController extends Controller
         }
 
         if (!empty($cnote_no)) {
-            $sql .= " and transaksi.cnote_no = " . $cnote_no;
+            $sql .= " and transaksi.cnote_no = '".$cnote_no."'";
         }
+
 
         if ($id_transaksi > 0) {
             $sql .= " and transaksi.id_transaksi = " . $id_transaksi;
@@ -655,4 +655,6 @@ class ReportController extends Controller
         }
         return response($result);
     }
+
+
 }

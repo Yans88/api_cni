@@ -9,6 +9,12 @@ Deny from all
     </IfModule>
 
     RewriteEngine On
+    RewriteCond %{REQUEST_METHOD} ^TRACE
+    RewriteRule .* - [F]
+    RewriteCond %{REQUEST_METHOD} ^TRACK
+    RewriteRule .* - [F]
+    RewriteCond %{REQUEST_METHOD} ^PATCH
+    RewriteRule .* - [F]
 
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
@@ -25,7 +31,7 @@ Deny from all
     RewriteRule ^ index.php [L]
 </IfModule>
 
-Header set Access-Control-Allow-Origin "*" 
-Header set Access-Control-Allow-Origin: http://localhost:3000 
+Header set Access-Control-Allow-Origin "*"
+Header set Access-Control-Allow-Origin: http://localhost:3000
 Header set  Access-Control-Allow-Methods "GET,POST,PUT,DELETE,OPTIONS"
 Header set Access-Control-Allow-Credentials "true"
