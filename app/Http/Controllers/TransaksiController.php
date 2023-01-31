@@ -362,6 +362,7 @@ class TransaksiController extends Controller
             $logistic_name = "";
             $service_code = "";
             $ongkir = 0;
+            $wh_name = $namadc;
             if ($type_voucher == 1) {
                 $id_voucher = "";
                 $kode_voucher = "";

@@ -2287,7 +2287,8 @@ class MemberController extends Controller
             "status" => 0
         );
         DB::table('otp_verify_cni_id')->where($where_member)->update(array('status' => -1, 'updated_at' => $tgl));
-        $verify_code = rand(100000, 999999);
+        $verify_code = rand(1000, 9999);
+        $verify_code = Crypt::encryptString($verify_code);
         $dt_otp = array(
             "kode_otp" => $verify_code,
             "cni_id" => $cni_id,
@@ -2307,13 +2308,13 @@ class MemberController extends Controller
             }
             $content_member = $out['content_verify_cni_id'];
             $content = str_replace('[#name#]', $email, $content_member);
-            $content = str_replace('[#kode_otp#]', $verify_code, $content);
+            $content = str_replace('[#kode_otp#]', Crypt::decryptString($verify_code), $content);
             $data['content'] = $content;
             $data['email'] = $email;
-            Mail::send([], ['users' => $data], function ($message) use ($data) {
-                $message->to($data['email'], $data['email'])->subject('Verify Akun')->setBody($data['content'], 'text/html');
-            });
-            $data['kode_otp'] = $verify_code;
+             Mail::send([], ['users' => $data], function ($message) use ($data) {
+                 $message->to($data['email'], $data['email'])->subject('Verify Akun')->setBody($data['content'], 'text/html');
+             });
+            $data['kode_otp'] = Crypt::decryptString($verify_code);
         }
         $result = array(
             'err_code' => '00',
@@ -2338,26 +2339,37 @@ class MemberController extends Controller
             return false;
         }
         $where_member = array(
-            "kode_otp" => $kode,
             "status" => 0
         );
-        $data_otp = DB::table('otp_verify_cni_id')->where($where_member)->first();
-        $kodeOtp = !empty($data_otp) ? (int)$data_otp->id_otp : 0;
-        if ($kodeOtp <= 0) {
-            $result = array(
-                'err_code' => '02',
-                'err_msg' => 'incorrect verification code',
-                'data' => $kode
-            );
+        $id_otp = 0;
+        $data_otp = DB::table('otp_verify_cni_id')->where($where_member)->get();
+        $result = array(
+            'err_code' => '02',
+            'err_msg' => 'incorrect verification code',
+            'data' => $kode
+        );
+        if ((int)count($data_otp) > 0) {
+            foreach ($data_otp as $do) {
+                if (!empty($do->kode_otp)) {
+                    $verify_decryptString = Crypt::decryptString($do->kode_otp);
+                    if ((int)$verify_decryptString == $kode) {
+                        $id_otp = $do->id_otp;
+                    }
+                }
+            }
+        } else {
             return response($result);
             return false;
         }
-        DB::table('otp_verify_cni_id')->where($where_member)->update(array('status' => 2, 'updated_at' => $tgl));
-        $result = array(
-            'err_code' => '00',
-            'err_msg' => 'ok',
-            'data' => $kode
-        );
+        if ((int)$id_otp > 0) {
+            DB::table('otp_verify_cni_id')->where($where_member)->update(array('status' => 2, 'updated_at' => $tgl));
+            $result = array(
+                'err_code' => '00',
+                'err_msg' => 'ok',
+                'data' => $kode
+            );
+        }
+
         return response($result);
     }
 
