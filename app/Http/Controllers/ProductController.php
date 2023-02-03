@@ -458,12 +458,12 @@ class ProductController extends Controller
         $id_member = (int)$request->id_member > 0 ? Helper::last_login((int)$request->id_member) : 0;
         $id = (int)$request->id_product > 0 ? (int)$request->id_product : 0;
         $id_member_share = (int)$request->id_member_share > 0 ? (int)$request->id_member_share : 0;
-        $where = array('product.deleted_at' => null, 'id_product' => $id);
+        $where = array('product.deleted_at' => null, 'id_product' => $id,'is_active' => 1);
 
         $result = array(
             'err_code' => '04',
             'err_msg' => 'data not found',
-            'data' => $id_member
+            'data' => $id
         );
         $count = 0;
         $count = DB::table('product')->where($where)->count();

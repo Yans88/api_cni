@@ -456,7 +456,7 @@ class ReportController extends Controller
         }
 
         if (!empty($cnote_no)) {
-            $sql .= " and transaksi.cnote_no = '".$cnote_no."'";
+            $sql .= " and transaksi.cnote_no = '" . $cnote_no . "'";
         }
 
         if ($id_transaksi > 0) {
@@ -561,7 +561,7 @@ class ReportController extends Controller
        members.nama as nama_member,transaksi.wh_name, transaksi.status, transaksi.logistic_name, transaksi.sub_ttl,
        transaksi.ongkir, transaksi.cnote_no,delivery_date,admin.name
        from transaksi left join admin on admin.id_admin = transaksi.delivery_by
-				left join members on members.id_member = transaksi.id_member where 1=1 ";
+				left join members on members.id_member = transaksi.id_member where transaksi.tipe_pengiriman =3 ";
 
 
         if ($status >= 0) {
@@ -572,7 +572,7 @@ class ReportController extends Controller
         }
 
         if (!empty($cnote_no)) {
-            $sql .= " and transaksi.cnote_no = '".$cnote_no."'";
+            $sql .= " and transaksi.cnote_no = '" . $cnote_no . "'";
         }
 
 

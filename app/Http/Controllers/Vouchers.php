@@ -182,7 +182,7 @@ class Vouchers extends Controller
         }
         //if(!empty($whereNotIn)) $sql .= " and vouchers.id_voucher not in (".$whereNotIn.")";
         if (!empty($whereIn)) $sql .= " and (vouchers.deleted_at is null and vouchers.id_voucher in (" . $whereIn . "))";
-        if (!empty($keyword)) $sql .= " and upper(kode_voucher) like '%$keyword%'";
+        if (!empty($keyword)) $sql .= " and upper(kode_voucher) = '$keyword'";
         Log::info($sql);
         $list_vouchers = DB::select(DB::raw($sql));
         $result = array();

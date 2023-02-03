@@ -77,7 +77,10 @@ class BlastController extends Controller
         $id_product = $request->has('id_product') && (int)$request->id_product > 0 ? (int)$request->id_product : 0;
         $content = $request->has('isi') ? $request->isi : '';
         $tujuan = $request->has('tujuan') ? $request->tujuan : 'Semua pengguna';
-        $data_product = DB::table('product')->select('product.product_name', 'product.kode_produk')->where(array('id_product' => $id_product))->first();
+        $data_product = array();
+        if($id_product > 0){
+            $data_product = DB::table('product')->select('product.product_name', 'product.kode_produk')->where(array('id_product' => $id_product))->first();
+        }
         $product_name = (int)$request->id_product > 0 ? $data_product->product_name : "Tidak ada";
         $kode_produk = (int)$request->id_product > 0 ? $data_product->kode_produk : '';
         $list_member = $request->id_member;
@@ -115,6 +118,7 @@ class BlastController extends Controller
         $dt_insert_notif = array();
         $target = array();
         $fcm_token = '';
+        Log::info('count list member : ' . count($list_member));
         if (count($list_member) > 0) {
             $fcm_token = DB::table('fcm_token')->select('token_fcm')->whereIn('id_member', $list_member)->groupBy('token_fcm')->get();
             for ($i = 0; $i < count($list_member); $i++) {

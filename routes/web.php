@@ -132,6 +132,7 @@ $router->get('/login_fb', 'MemberController@login_fb');
 $router->post('/cek_cni_id', 'MemberController@cek_cniid');
 $router->post('/verify_cek_cni_id', 'MemberController@verify_cek_cniid');
 $router->post('/cancel_transaksi_member', 'MemberController@cancel_transaksi');
+$router->post('/export_member', 'MemberController@report');
 
 $router->post('/category', 'CategoryController@index');
 $router->post('/simpan_category', 'CategoryController@store');

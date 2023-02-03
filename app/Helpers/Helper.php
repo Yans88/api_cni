@@ -667,10 +667,11 @@ class Helper
         $target = array();
         if (!empty($fcm_token)) {
             foreach ($fcm_token as $dt) {
-                Log::info(serialize($dt->token_fcm));
                 array_push($target, $dt->token_fcm);
             }
             $fields['registration_ids'] = $target;
+            Log::info('send_fcm - '.date('Y-m-d H:i:s'));
+            Log::info($fields);
             $headers = array(
                 'Content-Type:application/json',
                 'Authorization:key=' . $server_key
@@ -705,6 +706,7 @@ class Helper
 
         if (!empty($targets)) {
             $fields['registration_ids'] = $targets;
+            Log::info('send_fcm_multiple - '.date('Y-m-d H:i:s'));
             Log::info($fields);
             $headers = array(
                 'Content-Type:application/json',

@@ -2013,7 +2013,8 @@ class MemberController extends Controller
             return response($result);
             return false;
         }
-        $count = DB::table('cart')->where('id_member', $id_member)->count();
+        $count = DB::table('cart')->where('id_member', $id_member)->where('product.is_active', 1)
+            ->leftJoin('product', 'product.id_product', '=', 'cart.id_product')->count();
         $result = array();
         $data = array();
         $_limit = array();
@@ -2025,7 +2026,9 @@ class MemberController extends Controller
             'data' => null
         );
         if ((int)$count > 0) {
-            $dt_cart = DB::table('cart')->where('id_member', $id_member)->get();
+            $dt_cart = DB::table('cart')->select("cart.id_product", "cart.qty")
+                ->where('id_member', $id_member)->where('product.is_active', 1)
+                ->leftJoin('product', 'product.id_product', '=', 'cart.id_product')->get();
             $data_member = DB::table('members')->where(array('id_member' => $id_member))->first();
             $type = !empty($data_member) ? (int)$data_member->type : 0;
             $cni_id = !empty($data_member) ? $data_member->cni_id : '';
@@ -2098,7 +2101,6 @@ class MemberController extends Controller
         return response($result);
     }
 
-
     function test_mail()
     {
 
@@ -2164,7 +2166,6 @@ class MemberController extends Controller
         }
         return response($result);
     }
-
 
     function generate_pass(Request $request)
     {
@@ -2311,9 +2312,9 @@ class MemberController extends Controller
             $content = str_replace('[#kode_otp#]', Crypt::decryptString($verify_code), $content);
             $data['content'] = $content;
             $data['email'] = $email;
-             Mail::send([], ['users' => $data], function ($message) use ($data) {
-                 $message->to($data['email'], $data['email'])->subject('Verify Akun')->setBody($data['content'], 'text/html');
-             });
+            Mail::send([], ['users' => $data], function ($message) use ($data) {
+                $message->to($data['email'], $data['email'])->subject('Verify Akun')->setBody($data['content'], 'text/html');
+            });
             $data['kode_otp'] = Crypt::decryptString($verify_code);
         }
         $result = array(
@@ -2523,6 +2524,64 @@ class MemberController extends Controller
             'err_msg' => 'ok',
             'data' => $id_transaksi
         );
+        return response($result);
+    }
+
+    public function report(Request $request)
+    {
+        $type = (int)$request->type > 0 ? (int)$request->type : 0;
+        $keyword = !empty($request->keyword) ? strtolower($request->keyword) : '';
+        $sort_column = !empty($request->sort_column) ? $request->sort_column : 'nama';
+        $sort_order = !empty($request->sort_order) ? $request->sort_order : 'ASC';
+        $where = array();
+        $where = array('deleted_at' => null);
+        if ((int)$type > 0) {
+            $where += array('type' => $type);
+        }
+        $count = 0;
+        $data = null;
+        if (!empty($keyword)) {
+            $data = DB::table('members')->select("nama", "cni_id", "email", "id_member", "phone", "cni_id_ref")
+                ->where($where)->whereRaw("(LOWER(nama) like '%" . $keyword . "%' or cni_id like '%" . $keyword . "%')")->get()->toArray();
+            $count = count($data);
+        } else {
+            $count = Members::where($where)->count();
+            $data = Members::select("nama", "cni_id", "email", "id_member", "phone", "cni_id_ref")->where($where)->orderBy($sort_column, $sort_order)->get();
+        }
+        $result = array();
+        $result = array(
+            'err_code' => '04',
+            'err_msg' => 'data not found',
+            'total_data' => $count,
+            'data' => null
+        );
+        if ((int)$count > 0) {
+            foreach ($data as $d) {
+                $cni_id = !empty($d->cni_id) ? $d->cni_id : '';
+                $nama = !empty($d->nama) ? $d->nama : '';
+                $email = !empty($d->email) ? $d->email : '';
+                $phone = !empty($d->phone) ? $d->phone : '';
+                $cni_id_ref = !empty($d->cni_id_ref) ? $d->cni_id_ref : '-';
+                unset($d->cni_id);
+                unset($d->nama);
+                unset($d->email);
+                unset($d->phone);
+                unset($d->cni_id_ref);
+                $d->cni_id = $cni_id;
+                $d->nama = $nama;
+                $d->email = $email;
+                $d->phone = $phone;
+                $d->cni_id_ref = $cni_id_ref;
+                $_data[] = $d;
+            }
+
+            $result = array(
+                'err_code' => '00',
+                'err_msg' => 'ok',
+                'total_data' => $count,
+                'data' => $_data
+            );
+        }
         return response($result);
     }
 
