@@ -442,11 +442,18 @@ class ReportController extends Controller
         $_data = array();
         $data = null;
         $sql = '';
+
+        $where = ['admin.deleted_at' => null, 'id_admin' => $id_operator];
+        $dataAdmin = DB::table('admin')->select('id_level', 'id_wh')
+            ->where($where)->first();
+        $id_level = $dataAdmin->id_level;
+        $id_wh = (int)$dataAdmin->id_wh;
+
         $sql = "select transaksi.id_transaksi,transaksi.created_at,transaksi.type_member,
        members.nama as nama_member,transaksi.wh_name, transaksi.status, transaksi.logistic_name, transaksi.sub_ttl,
        transaksi.ongkir, transaksi.cnote_no,delivery_date,admin.name
        from transaksi left join admin on admin.id_admin = transaksi.delivery_by
-				left join members on members.id_member = transaksi.id_member where 1=1 ";
+				left join members on members.id_member = transaksi.id_member where transaksi.tipe_pengiriman =3 ";
 
         if ($status >= 0) {
             $sql .= " and transaksi.status = " . $status;
@@ -462,7 +469,9 @@ class ReportController extends Controller
         if ($id_transaksi > 0) {
             $sql .= " and transaksi.id_transaksi = " . $id_transaksi;
         }
-
+        if ($id_level != 1 || $id_level != 25) {
+            $sql .= " and transaksi.id_wh = " . $id_wh;
+        }
 
         $_dataa = DB::select(DB::raw($sql));
         $count = count($_dataa);
@@ -553,6 +562,12 @@ class ReportController extends Controller
 
         $cnote_no = !empty($request->cnote) ? $request->cnote : '';
 
+        $where = ['admin.deleted_at' => null, 'id_admin' => $id_operator];
+        $dataAdmin = DB::table('admin')->select('id_level', 'id_wh')
+            ->where($where)->first();
+        $id_level = $dataAdmin->id_level;
+        $id_wh = (int)$dataAdmin->id_wh;
+
         $count = 0;
         $_data = array();
         $data = null;
@@ -578,6 +593,10 @@ class ReportController extends Controller
 
         if ($id_transaksi > 0) {
             $sql .= " and transaksi.id_transaksi = " . $id_transaksi;
+        }
+
+        if ($id_level != 1 || $id_level != 25) {
+            $sql .= " and transaksi.id_wh = " . $id_wh;
         }
 
         $_dataa = DB::select(DB::raw($sql));

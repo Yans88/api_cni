@@ -529,10 +529,11 @@ class TransaksiController extends Controller
             $err_stok = array();
             $err_hrg = array();
             $err_active = [];
+            $err_soldout = [];
             $dt_insert = array();
             $upd_product = array();
             $where = array('product.deleted_at' => null);
-            $_data = DB::table('product')->select('product.*', 'category_name','product.is_active')
+            $_data = DB::table('product')->select('product.*', 'category_name', 'product.is_active')
                 ->whereIn('id_product', $whereIn)
                 ->leftJoin('category', 'category.id_category', '=', 'product.id_category')->where($where)->get();
 
@@ -606,6 +607,10 @@ class TransaksiController extends Controller
                     if ((int)$dt->is_active <= 0) {
                         $err_active[] = $dt;
                     }
+                    if ((int)$dt->is_sold_out == 1) {
+                        $err_soldout[] = $dt;
+                    }
+
                 }
                 if ($type == 1 || $type == 3 || $is_upgrade == 1 || $is_regmitra == 1) {
                     $totalDiskon = $totalHargaRetail - $totalHargaMember;
@@ -719,6 +724,17 @@ class TransaksiController extends Controller
                 $result = array(
                     'err_code' => '08',
                     'err_msg' => 'Product invalid',
+                    'data' => $err_active
+                );
+                return response($result);
+                return false;
+            }
+            if (count($err_soldout) > 0) {
+                DB::rollback();
+                DB::table('transaksi')->where('id_transaksi', $id_transaksi)->delete();
+                $result = array(
+                    'err_code' => '08',
+                    'err_msg' => 'Product sold out',
                     'data' => $err_active
                 );
                 return response($result);

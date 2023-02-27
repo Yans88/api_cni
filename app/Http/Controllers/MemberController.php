@@ -2014,6 +2014,7 @@ class MemberController extends Controller
             return false;
         }
         $count = DB::table('cart')->where('id_member', $id_member)->where('product.is_active', 1)
+            ->where('product.is_sold_out', '!=', 1)
             ->leftJoin('product', 'product.id_product', '=', 'cart.id_product')->count();
         $result = array();
         $data = array();
@@ -2028,6 +2029,7 @@ class MemberController extends Controller
         if ((int)$count > 0) {
             $dt_cart = DB::table('cart')->select("cart.id_product", "cart.qty")
                 ->where('id_member', $id_member)->where('product.is_active', 1)
+                ->where('product.is_sold_out', '!=', 1)
                 ->leftJoin('product', 'product.id_product', '=', 'cart.id_product')->get();
             $data_member = DB::table('members')->where(array('id_member' => $id_member))->first();
             $type = !empty($data_member) ? (int)$data_member->type : 0;
