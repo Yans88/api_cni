@@ -368,9 +368,9 @@ class MitraController extends Controller
         $cnt_data = DB::table('transaksi')->where($where)->count();
         if ((int)$cnt_data > 0) {
             $_data = DB::table('transaksi')->select('token_mitra')->where($where)->first();
-            $token_mitra = !empty($_data->token_mitra) ? $_data->token_mitra : '';
+            $token_mitra = !empty($_data->token_mitra) ? Crypt::decryptString($_data->token_mitra) : '';
             if (!empty($token_mitra)) {
-                if ($token_mitra == Crypt::decryptString($token)) {
+                if ($token_mitra == $token) {
                     DB::table('transaksi')->where($where)->update(array("token_mitra" => 0));
                     $_data = DB::table('transaksi')->where($where)->first();
                     DB::table('reg_mitra')->where(array("id_transaksi" => $id_transaksi))->update(array('status' => 8, 'updated_at' => $tgl));
@@ -440,7 +440,7 @@ class MitraController extends Controller
                     }
                 }
                 $content_email_hold_cust = $out['content_email_otp_mitra'];
-                $content_email_hold_cust = str_replace('[#kode_otp#]', $_data->token_mitra, $content_email_hold_cust);
+                $content_email_hold_cust = str_replace('[#kode_otp#]', $token_mitra, $content_email_hold_cust);
                 $html = '<table cellpadding="0" cellspacing="0" border="0" width="80%" style="border-collapse:collapse;color:rgba(49,53,59,0.96);">
 							<tbody>';
                 foreach ($data_item as $di) {

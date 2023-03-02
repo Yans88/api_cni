@@ -448,7 +448,7 @@ class TransaksiController extends Controller
             "is_rne25" => 0,
             "is_regmitra" => $is_regmitra,
             "is_upgrade" => $is_upgrade,
-            "token_mitra" => !empty($token_mitra) ? Crypt::decryptString($token_mitra) : '',
+            "token_mitra" => !empty($token_mitra) ? Crypt::encryptString($token_mitra) : '',
             "etd" => $etd,
             "alamat_dc" => $alamat_dc,
             "service_code" => $service_code,
@@ -541,6 +541,7 @@ class TransaksiController extends Controller
             $jdp = 0;
             Log::info('start id_transaksi ' . $id_transaksi);
             DB::connection()->enableQueryLog();
+            $err_msg = 'Produk ';
             if (count($_data) > 0) {
                 foreach ($_data as $dt) {
                     $harga = 0;
@@ -599,18 +600,20 @@ class TransaksiController extends Controller
                         "qty" => (int)$dt->qty - (int)$dt_product[$dt->id_product]['jml']
                     );
                     if ((int)$dt->qty < (int)$dt_product[$dt->id_product]['jml'] && $tipe_pengiriman == 3) {
+                        $err_msg .= $err_msg == 'Produk ' ? $dt->product_name : ', ' . $dt->product_name;
                         $err_stok[] = $dt;
                     }
                     if (!in_array($dt->id_product, $myPriceId)) {
                         $err_hrg[] = $dt;
                     }
                     if ((int)$dt->is_active <= 0) {
+                        $err_msg .= $err_msg == 'Produk ' ? $dt->product_name : ', ' . $dt->product_name;
                         $err_active[] = $dt;
                     }
                     if ((int)$dt->is_sold_out == 1) {
+                        $err_msg .= $err_msg == 'Produk ' ? $dt->product_name : ', ' . $dt->product_name;
                         $err_soldout[] = $dt;
                     }
-
                 }
                 if ($type == 1 || $type == 3 || $is_upgrade == 1 || $is_regmitra == 1) {
                     $totalDiskon = $totalHargaRetail - $totalHargaMember;
@@ -712,7 +715,7 @@ class TransaksiController extends Controller
                 DB::table('transaksi')->where('id_transaksi', $id_transaksi)->delete();
                 $result = array(
                     'err_code' => '04',
-                    'err_msg' => 'Stok tidak cukup',
+                    'err_msg' => $err_msg . ' stok tidak cukup',
                     'data' => $err_stok
                 );
                 return response($result);
@@ -723,7 +726,7 @@ class TransaksiController extends Controller
                 DB::table('transaksi')->where('id_transaksi', $id_transaksi)->delete();
                 $result = array(
                     'err_code' => '08',
-                    'err_msg' => 'Product invalid',
+                    'err_msg' => $err_msg . ' invalid',
                     'data' => $err_active
                 );
                 return response($result);
@@ -734,7 +737,7 @@ class TransaksiController extends Controller
                 DB::table('transaksi')->where('id_transaksi', $id_transaksi)->delete();
                 $result = array(
                     'err_code' => '08',
-                    'err_msg' => 'Product sold out',
+                    'err_msg' => $err_msg . ' sold out',
                     'data' => $err_active
                 );
                 return response($result);
