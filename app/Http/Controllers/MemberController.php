@@ -38,17 +38,27 @@ class MemberController extends Controller
         if ((int)$type > 0) {
             $where += array('type' => $type);
         }
+
         $count = 0;
         $data = null;
         if (!empty($keyword)) {
-            $data = DB::table('members')->where($where)->whereRaw("(LOWER(nama) like '%" . $keyword . "%' or cni_id like '%" . $keyword . "%')")->get()->toArray();
+            if ((int)$type == 1) {
+                $data = DB::table('members')->where($where)->whereIn('type', [1, 3])->whereRaw("(LOWER(nama) like '%" . $keyword . "%' or cni_id like '%" . $keyword . "%')")->get()->toArray();
+            } else {
+                $data = DB::table('members')->where($where)->whereRaw("(LOWER(nama) like '%" . $keyword . "%' or cni_id like '%" . $keyword . "%')")->get()->toArray();
+            }
             $count = count($data);
         } else {
-            $count = Members::where($where)->count();
+            $count = (int)$type == 1 ? Members::where($where)->whereIn('type', [1, 3])->count() : Members::where($where)->count();
             //$count = count($ttl_data);
             $per_page = $per_page > 0 ? $per_page : $count;
             $offset = ($page_number - 1) * $per_page;
-            $data = Members::where($where)->offset($offset)->limit($per_page)->orderBy($sort_column, $sort_order)->get();
+            if ((int)$type == 1) {
+                $data = Members::where($where)->whereIn('type', [1, 3])->offset($offset)->limit($per_page)->orderBy($sort_column, $sort_order)->get();
+            } else {
+                $data = Members::where($where)->offset($offset)->limit($per_page)->orderBy($sort_column, $sort_order)->get();
+            }
+
         }
         $result = array();
         $result = array(

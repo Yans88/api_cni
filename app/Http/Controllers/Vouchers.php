@@ -288,7 +288,7 @@ class Vouchers extends Controller
         $data = array();
         $tgl = date('Y-m-d H:i:s');
         $id_member = $request->has('id_member') ? (int)$request->id_member : 0;
-        $total_belanjaan = $request->has('total_belanjaan') ? str_replace(',', '', $request->total_belanjaan) : 0;
+        $platform = $request->has('platform') ? (int)$request->platform : 0;
         if ($id_member == 0) {
             $result = array(
                 'err_code' => '02',
@@ -305,11 +305,11 @@ class Vouchers extends Controller
         $_sql = '';
         if ($tipe_member == 1) {
             $_sql = "select id_voucher from vouchers
-            where member=1 and deleted_at is null and vouchers.is_publish = 1 and vouchers.is_show = 1 and vouchers.start_date::timestamp <= '" . $tgl . "' and vouchers.end_date::timestamp >= '" . $tgl . "'";
+            where user_tertentu=0 and member=1 and deleted_at is null and vouchers.is_publish = 1 and vouchers.is_show = 1 and vouchers.start_date::timestamp <= '" . $tgl . "' and vouchers.end_date::timestamp >= '" . $tgl . "'";
         }
         if ($tipe_member == 2) {
             $_sql = "select id_voucher from vouchers
-            where konsumen=1 and deleted_at is null and vouchers.is_publish = 1 and vouchers.is_show = 1 and vouchers.start_date::timestamp <= '" . $tgl . "' and vouchers.end_date::timestamp >= '" . $tgl . "'";
+            where user_tertentu=0 and konsumen=1 and deleted_at is null and vouchers.is_publish = 1 and vouchers.is_show = 1 and vouchers.start_date::timestamp <= '" . $tgl . "' and vouchers.end_date::timestamp >= '" . $tgl . "'";
         }
 
         $voucher_tipe_member = array();
@@ -338,7 +338,8 @@ class Vouchers extends Controller
                 $whereIn = implode(',', $id_ta);
             }
         }
-
+        if ($platform == 1) $sql .= " and vouchers.mobile = 1";
+        if ($platform == 2) $sql .= " and vouchers.website = 1";
         if (!empty($whereIn)) $sql .= " and (vouchers.deleted_at is null and vouchers.id_voucher in (" . $whereIn . "))";
 
         $list_vouchers = DB::select(DB::raw($sql));
@@ -421,7 +422,7 @@ class Vouchers extends Controller
         $potongan = $request->has('potongan') ? str_replace(',', '', $request->potongan) : '';
         $max_potongan = $request->has('max_potongan') ? str_replace(',', '', $request->max_potongan) : '';
         $start_date = $request->has('start_date') ? date('Y-m-d H:i', strtotime($request->start_date)) : '';
-        $end_date = $request->has('end_date') ? date('Y-m-d H:i', strtotime($request->end_date.' 23:59')) : '';
+        $end_date = $request->has('end_date') ? date('Y-m-d H:i', strtotime($request->end_date . ' 23:59')) : '';
         $tipe = $request->has('tipe') ? (int)$request->tipe : 0;
         $produk_utama = $request->has('produk_utama') ? (int)$request->produk_utama : 0;
         $produk_bonus = $request->has('produk_bonus') ? (int)$request->produk_bonus : 0;
