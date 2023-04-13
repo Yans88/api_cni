@@ -35,7 +35,7 @@ class MemberController extends Controller
         $page_number = (int)$request->page_number > 0 ? (int)$request->page_number : 1;
         $where = array();
         $where = array('deleted_at' => null);
-        if ((int)$type > 0) {
+        if ((int)$type > 1) {
             $where += array('type' => $type);
         }
 
@@ -43,18 +43,18 @@ class MemberController extends Controller
         $data = null;
         if (!empty($keyword)) {
             if ((int)$type == 1) {
-                $data = DB::table('members')->where($where)->whereIn('type', [1, 3])->whereRaw("(LOWER(nama) like '%" . $keyword . "%' or cni_id like '%" . $keyword . "%')")->get()->toArray();
+                $data = DB::table('members')->where($where)->whereIn('type', array(1,3))->whereRaw("(LOWER(nama) like '%" . $keyword . "%' or cni_id like '%" . $keyword . "%')")->get()->toArray();
             } else {
                 $data = DB::table('members')->where($where)->whereRaw("(LOWER(nama) like '%" . $keyword . "%' or cni_id like '%" . $keyword . "%')")->get()->toArray();
             }
             $count = count($data);
         } else {
-            $count = (int)$type == 1 ? Members::where($where)->whereIn('type', [1, 3])->count() : Members::where($where)->count();
+            $count = (int)$type == 1 ? Members::where($where)->whereIn('type', array(1,3))->count() : Members::where($where)->count();
             //$count = count($ttl_data);
             $per_page = $per_page > 0 ? $per_page : $count;
             $offset = ($page_number - 1) * $per_page;
             if ((int)$type == 1) {
-                $data = Members::where($where)->whereIn('type', [1, 3])->offset($offset)->limit($per_page)->orderBy($sort_column, $sort_order)->get();
+                $data = Members::where($where)->whereIn('type', array(1,3))->offset($offset)->limit($per_page)->orderBy($sort_column, $sort_order)->get();
             } else {
                 $data = Members::where($where)->offset($offset)->limit($per_page)->orderBy($sort_column, $sort_order)->get();
             }
@@ -596,6 +596,7 @@ class MemberController extends Controller
         }
         $data->status = 1;
         $data->verify_phone = 1;
+		$data->verify_email = 1;
         $data->updated_at = $tgl;
         $data->updated_by = $id_member;
         $data->save();

@@ -1481,6 +1481,14 @@ class TransaksiController extends Controller
 
     function store_rne25(Request $request)
     {
+        $result = array(
+            'err_code' => '01',
+            'err_msg' => 'endpoint inactive',
+            'data' => ''
+        );
+        return response($result);
+        return false;
+
         $url_path_doku = env('URL_JOKUL');
         $clientId = env('CLIENT_ID_JOKUL');
         $secretKey = env('SECRET_KEY_JOKUL');

@@ -649,7 +649,7 @@ class DokuController extends Controller
                         $upd_member += array('start_member' => $start_member, 'cni_id' => $gen_cni_id);
                     }
                     DB::table('members')->where('id_member', $id_member)->update($upd_member);
-                    Log::info(DB::getQueryLog());
+                    //Log::info(DB::getQueryLog());
                 }
                 if (($ttl_price >= 500000 && $ttl_price < 1000000) && $tipe_member == 2 && $is_regmitra == 0 && $is_upgrade == 1) {
                     $is_upgrade = 1;

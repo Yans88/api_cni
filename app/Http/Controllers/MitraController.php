@@ -440,8 +440,11 @@ class MitraController extends Controller
                     }
                 }
                 $content_email_hold_cust = $out['content_email_otp_mitra'];
-                $content_email_hold_cust = str_replace('[#kode_otp#]', $token_mitra, $content_email_hold_cust);
-                $html = '<table cellpadding="0" cellspacing="0" border="0" width="80%" style="border-collapse:collapse;color:rgba(49,53,59,0.96);">
+                $content_email_hold_cust = str_replace('[#kode_otp#]', $token_mitra, $content_email_hold_cust);                
+                $content_email_hold_cust = str_replace('[#ttl_bayar#]', number_format($_data->sub_ttl), $content_email_hold_cust);
+                $content_email_hold_cust = str_replace('[#cara_bayar#]', $cara_bayar, $content_email_hold_cust);
+                $content_email_hold_cust = str_replace('[#key_payment#]', $_data->key_payment, $content_email_hold_cust);
+				$html = '<table cellpadding="0" cellspacing="0" border="0" width="80%" style="border-collapse:collapse;color:rgba(49,53,59,0.96);">
 							<tbody>';
                 foreach ($data_item as $di) {
                     $html .= '<tr>';
