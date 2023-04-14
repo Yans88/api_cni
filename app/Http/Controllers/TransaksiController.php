@@ -183,8 +183,8 @@ class TransaksiController extends Controller
 
     function store(Request $request)
     {
-        Log::info("start transaksi");
-        Log::info(serialize($request->all()));
+        //Log::info("start transaksi");
+        //Log::info(serialize($request->all()));
         $url_path_doku = env('URL_JOKUL');
         $clientId = env('CLIENT_ID_JOKUL');
         $secretKey = env('SECRET_KEY_JOKUL');
@@ -293,12 +293,26 @@ class TransaksiController extends Controller
         }
         $kode_origin = '';
         $token_mitra = 0;
+
         $data_member = DB::table('members')->where(array('id_member' => $id_member))->first();
+        $type = !empty($data_member) ? (int)$data_member->type : 0;
+        if ($type == 1 || $type == 3) {
+            $status_akun_expire = strtolower($data_member->status_akun_expire);
+            if ($status_akun_expire == 'expired') {
+                $result = array(
+                    'err_code' => '09',
+                    'err_msg' => 'akun expired',
+                    'data' => ''
+                );
+                return response($result);
+                return false;
+            }
+        }
         if ($is_regmitra > 0) {
             $token_mitra = random_int(100000, 999999);
             $data_member = DB::table('reg_mitra')->where(array('reg_mitra.id_reg_mitra' => $id_member))->first();
         }
-        $type = !empty($data_member) ? (int)$data_member->type : 0;
+
         $list_item = json_decode($request->list_item);
 
         $nama = !empty($data_member) ? $data_member->nama : '';
@@ -792,7 +806,9 @@ class TransaksiController extends Controller
                     if (!empty($cni_id) && $payment != 3) {
                         $ket = !empty($ket) ? $ket : "Pembayaran sebagian transaksi #" . $id_transaksi;
                         $data_ewallet = Helper::trans_ewallet($action, $cni_id, $sub_ttl_ongkir_pot_voucher, $ewallet, $id_transaksi, $request->all(), "submit_transaksi", 1, $ket, 1, $id_member);
+                        Log::info(serialize($data_ewallet));
                     }
+
                     if (isset($data_ewallet['result']) && $data_ewallet['result'] != "Y") {
                         DB::rollback();
                         DB::table('transaksi')->where('id_transaksi', $id_transaksi)->delete();

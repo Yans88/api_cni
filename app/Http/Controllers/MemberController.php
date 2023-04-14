@@ -43,18 +43,18 @@ class MemberController extends Controller
         $data = null;
         if (!empty($keyword)) {
             if ((int)$type == 1) {
-                $data = DB::table('members')->where($where)->whereIn('type', array(1,3))->whereRaw("(LOWER(nama) like '%" . $keyword . "%' or cni_id like '%" . $keyword . "%')")->get()->toArray();
+                $data = DB::table('members')->where($where)->whereIn('type', array(1, 3))->whereRaw("(LOWER(nama) like '%" . $keyword . "%' or cni_id like '%" . $keyword . "%')")->get()->toArray();
             } else {
                 $data = DB::table('members')->where($where)->whereRaw("(LOWER(nama) like '%" . $keyword . "%' or cni_id like '%" . $keyword . "%')")->get()->toArray();
             }
             $count = count($data);
         } else {
-            $count = (int)$type == 1 ? Members::where($where)->whereIn('type', array(1,3))->count() : Members::where($where)->count();
+            $count = (int)$type == 1 ? Members::where($where)->whereIn('type', array(1, 3))->count() : Members::where($where)->count();
             //$count = count($ttl_data);
             $per_page = $per_page > 0 ? $per_page : $count;
             $offset = ($page_number - 1) * $per_page;
             if ((int)$type == 1) {
-                $data = Members::where($where)->whereIn('type', array(1,3))->offset($offset)->limit($per_page)->orderBy($sort_column, $sort_order)->get();
+                $data = Members::where($where)->whereIn('type', array(1, 3))->offset($offset)->limit($per_page)->orderBy($sort_column, $sort_order)->get();
             } else {
                 $data = Members::where($where)->offset($offset)->limit($per_page)->orderBy($sort_column, $sort_order)->get();
             }
@@ -94,9 +94,11 @@ class MemberController extends Controller
 
     function detail(Request $request)
     {
+        $tgl = date('Y-m-d');
+
         $id_member = (int)$request->id_member;
         $id_token = (int)$request->id_token_fcm > 0 ? (int)$request->id_token_fcm : 0;
-        $where = ['deleted_at' => null, 'id_member' => $id_member];
+        $where = ['deleted_at' => null, 'id_member' => $id_member, 'status_akun_expire' => null];
         $count = Members::where($where)->count();
         $result = array(
             'err_code' => '04',
@@ -106,23 +108,38 @@ class MemberController extends Controller
         $last_month_member = 0;
         $is_grace_periode = 0;
         if ((int)$count > 0) {
-
-            $wheree = array('history_notif.id_member' => $id_member, 'unread' => 1);
-            $cnt_unread = DB::table('history_notif')->where($wheree)->count();
-
-            Helper::last_login($id_member);
             $data = Members::where($where)->first();
             $photo = !empty($data->photo) ? env('APP_URL') . '/api_cni/uploads/members/' . $data->photo : '';
             $type = (int)$data->type;
             $cni_id = !empty($data->cni_id) ? $data->cni_id : '';
+
+            if ($type == 1 || $type == 3) {
+                $end_date = !empty($data->end_member) ? date('Y-m-d', strtotime($data->end_member)) : $tgl;
+                $d1 = date_create($tgl);
+                $d2 = date_create($end_date);
+                $diff = date_diff($d1, $d2);
+                if ((int)$diff->invert > 0) {
+                    DB::table('members')->where('id_member', $id_member)->update(['status_akun_expire' => 'expired', 'updated_at' => $tgl]);
+                    //DB::table('fcm_token')->where(array('id_member' => $id_member))->orWhere(array('token_fcm' => null))->delete();
+                    $result = array(
+                        'err_code' => '09',
+                        'err_msg' => 'akun expired',
+                        'data' => ''
+                    );
+                    return response($result);
+                }
+            }
+
+            $wheree = array('history_notif.id_member' => $id_member, 'unread' => 1);
+            $cnt_unread = DB::table('history_notif')->where($wheree)->count();
             $res = 0;
             // if ($type == 1 && !empty($cni_id)) {
             // $data_ewallet = Helper::get_ewallet($cni_id,$request->all(),'profile_member');
             // $res = $data_ewallet['saldo'];
             // }
             $last_month_member_date = '';
-            $tgl = date('Y-m-d');
-            if ($type == 2 && !empty($cni_id)) {
+
+            /*if ($type == 2 && !empty($cni_id)) {
                 $end_date = date('Y-m-d', strtotime($data->end_member));
                 if ($tgl > $end_date) {
                     $date1 = date_create($end_date);
@@ -130,8 +147,8 @@ class MemberController extends Controller
                     $diff = date_diff($date1, $date2);
                     $is_grace_periode = 16 - (int)$diff->format("%R%a");
                 }
-            }
-            if ($type == 1) {
+            }*/
+            /*if ($type == 1) {
                 $end_date = date('Y-m-d', strtotime($data->end_member));
                 $last_month_member_date = date('Y-m-d', strtotime("-1 months", strtotime($end_date)));
                 if ($tgl >= $last_month_member_date && $tgl <= $end_date) $last_month_member = 1;
@@ -144,8 +161,8 @@ class MemberController extends Controller
                     DB::table('members')->where('id_member', $id_member)->update($dataa);
                     $data = Members::where($where)->first();
                 }
-            }
-            if ($type == 3) {
+            }*/
+            /*if ($type == 3) {
                 $end_date = date('Y-m-d', strtotime($data->end_member));
                 if ($tgl > $end_date) {
                     $date1 = date_create($end_date);
@@ -156,7 +173,7 @@ class MemberController extends Controller
                     DB::table('members')->where('id_member', $id_member)->update($dataa);
                     $data = Members::where($where)->first();
                 }
-            }
+            }*/
             if ($id_token > 0) {
                 $fcm_token = DB::table('fcm_token')->where(array('id_token_fcm' => $id_token))->first();
             }
@@ -170,6 +187,7 @@ class MemberController extends Controller
             $data->last_month_member = $last_month_member;
             $data->is_grace_periode = $is_grace_periode;
             $data->cnt_unread = $cnt_unread;
+            Helper::last_login($id_member);
             $result = array(
                 'err_code' => '00',
                 'err_msg' => 'ok',
@@ -248,7 +266,7 @@ class MemberController extends Controller
         }
         $count = 0;
         if ($data->type == 1) {
-            $where = ['deleted_at' => null, 'cni_id' => $data->cni_id];
+            $where = ['deleted_at' => null, 'cni_id' => $data->cni_id, 'status_akun_expire' => null];
             $count = Members::where($where)->count();
             if ($count > 0) {
                 $result = array(
@@ -260,7 +278,7 @@ class MemberController extends Controller
                 return false;
             }
         }
-        $where = ['deleted_at' => null, 'email' => $data->email];
+        $where = ['deleted_at' => null, 'email' => $data->email, 'status_akun_expire' => null];
         $count = Members::where($where)->count();
         if (!empty($count)) {
             $result = array(
@@ -271,7 +289,7 @@ class MemberController extends Controller
             return response($result);
             return false;
         }
-        $where = ['deleted_at' => null, 'phone' => $data->phone];
+        $where = ['deleted_at' => null, 'phone' => $data->phone, 'status_akun_expire' => null];
         $count = Members::where($where)->count();
         if (!empty($count)) {
             $result = array(
@@ -315,14 +333,15 @@ class MemberController extends Controller
     {
         $tgl = date('Y-m-d H:i:s');
         $id_member = (int)$request->id_member;
-        Helper::last_login($id_member);
         $result = array();
         if ($id_member > 0) {
-            $data = Members::where('id_member', $id_member)->first();
+            $where = ['deleted_at' => null, 'id_member' => $id_member, 'status_akun_expire' => null];
+            $data = Members::where($where)->first();
             $data->nama = $request->nama;
             $data->updated_at = $tgl;
             $data->updated_by = $id_member;
             $data->save();
+            Helper::last_login($id_member);
             $result = array(
                 'err_code' => '00',
                 'err_msg' => 'ok',
@@ -378,6 +397,16 @@ class MemberController extends Controller
         );
         if ($count > 0) {
             $data = Members::where($where)->whereIn('type', $whereIn)->first();
+            $status_akun_expire = strtolower($data->status_akun_expire);
+            if ($status_akun_expire == 'expired') {
+                $result = array(
+                    'err_code' => '09',
+                    'err_msg' => 'akun expired',
+                    'data' => ''
+                );
+                return response($result);
+                return false;
+            }
             $password = Crypt::decryptString($data->pass);
             if ($pass == $password) {
                 unset($data->password);
@@ -425,7 +454,7 @@ class MemberController extends Controller
     {
         $tgl = date('Y-m-d H:i:s');
         $id_member = (int)$request->id_member;
-        Helper::last_login($id_member);
+
         $new_pass = $request->new_pass;
         $old_pass = $request->old_pass;
         $result = array();
@@ -449,6 +478,17 @@ class MemberController extends Controller
         }
         if ($id_member > 0) {
             $data = Members::where('id_member', $id_member)->first();
+            $status_akun_expire = strtolower($data->status_akun_expire);
+            if ($status_akun_expire == 'expired') {
+                $result = array(
+                    'err_code' => '09',
+                    'err_msg' => 'akun expired',
+                    'data' => ''
+                );
+                return response($result);
+                return false;
+            }
+            Helper::last_login($id_member);
             $password = Crypt::decryptString($data->pass);
             $old_pass = strtolower($old_pass);
             if ($password != $old_pass) {
@@ -515,6 +555,16 @@ class MemberController extends Controller
         }
         $_tgl = date('YmdHi');
         $data = Members::where('id_member', $id_member)->first();
+        $status_akun_expire = strtolower($data->status_akun_expire);
+        if ($status_akun_expire == 'expired') {
+            $result = array(
+                'err_code' => '09',
+                'err_msg' => 'akun expired',
+                'data' => ''
+            );
+            return response($result);
+            return false;
+        }
         $nama = str_replace(' ', '', $data->name);
         if (strlen($nama) > 32) $nama = substr($nama, 0, 32);
         $nama = strtolower($nama);
@@ -584,6 +634,16 @@ class MemberController extends Controller
             return false;
         }
         $data = Members::where('id_member', $id_member)->first();
+        $status_akun_expire = strtolower($data->status_akun_expire);
+        if ($status_akun_expire == 'expired') {
+            $result = array(
+                'err_code' => '09',
+                'err_msg' => 'akun expired',
+                'data' => ''
+            );
+            return response($result);
+            return false;
+        }
         $verify_phoneDecryptString = Crypt::decryptString($data->verify_phone);
         if ($kode != (int)$verify_phoneDecryptString) {
             $result = array(
@@ -596,7 +656,7 @@ class MemberController extends Controller
         }
         $data->status = 1;
         $data->verify_phone = 1;
-		$data->verify_email = 1;
+        $data->verify_email = 1;
         $data->updated_at = $tgl;
         $data->updated_by = $id_member;
         $data->save();
@@ -613,6 +673,16 @@ class MemberController extends Controller
         $tgl = date('Y-m-d H:i:s');
         $id_member = (int)$request->id_member;
         $data = Members::where('id_member', $id_member)->first();
+        $status_akun_expire = strtolower($data->status_akun_expire);
+        if ($status_akun_expire == 'expired') {
+            $result = array(
+                'err_code' => '09',
+                'err_msg' => 'akun expired',
+                'data' => ''
+            );
+            return response($result);
+            return false;
+        }
         if ((int)$data->verify_phone == 1) {
             $result = array(
                 'err_code' => '03',
@@ -659,6 +729,16 @@ class MemberController extends Controller
         $id_member = Crypt::decryptString($id);
         $id_member = (int)$id_member;
         $data = Members::where('id_member', $id_member)->first();
+        $status_akun_expire = strtolower($data->status_akun_expire);
+        if ($status_akun_expire == 'expired') {
+            $result = array(
+                'err_code' => '09',
+                'err_msg' => 'akun expired',
+                'data' => ''
+            );
+            return response($result);
+            return false;
+        }
         if ((int)$data->verify_email == 1) {
             $result = array(
                 'err_code' => '03',
@@ -689,9 +769,9 @@ class MemberController extends Controller
         $tgl = date('Y-m-d H:i:s');
         $email = $request->email;
         if (!empty($email)) {
-            $cnt = Members::whereRaw("LOWER(email) = '" . strtolower($email) . "'")->count();
+            $cnt = Members::whereRaw("LOWER(email) = '" . strtolower($email) . "' and status_akun_expire is null")->count();
             if ((int)$cnt > 0) {
-                $data = Members::whereRaw("LOWER(email) = '" . strtolower($email) . "'")->first();
+                $data = Members::whereRaw("LOWER(email) = '" . strtolower($email) . "' and status_akun_expire is null")->first();
                 if ((int)$data->verify_email <= 0) {
                     $result = array(
                         'err_code' => '07',

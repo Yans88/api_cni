@@ -41,8 +41,22 @@ class ProductController extends Controller
         $id_category = (int)$request->id_category > 0 ? (int)$request->id_category : 0;
         $id_member = (int)$request->id_member > 0 ? Helper::last_login((int)$request->id_member) : 0;
         $data_member = DB::table('members')->where(array('id_member' => $id_member))->first();
+
         $type = !empty($data_member) ? (int)$data_member->type : 0;
-        $cni_id = !empty($data_member) ? $data_member->cni_id : '';
+
+        if (($type == 1 || $type == 3) && $is_cms == 0) {
+            $status_akun_expire = strtolower($data_member->status_akun_expire);
+            if ($status_akun_expire == 'expired') {
+                $result = array(
+                    'err_code' => '09',
+                    'err_msg' => 'akun expired',
+                    'data' => ''
+                );
+                return response($result);
+                return false;
+            }
+        }
+
         $sc = $sort_column;
         if ($sort_column == "harga" || $sort_column == "harga_member" || $sort_column == "harga_konsumen") {
             //$sort_column = $type == 1 ? "harga_member" : "harga_konsumen";
@@ -61,41 +75,42 @@ class ProductController extends Controller
         $is_grace_periode = 0;
         $last_month_member = 0;
 
+        /* disable pengecekan grace periode
         if ($is_cms <= 0) {
-            $tgll = date('Y-m-d');
-            if ($type == 2 && !empty($cni_id)) {
-                $end_date = date('Y-m-d', strtotime($data_member->end_member));
-                if ($tgll > $end_date) {
-                    $date1 = date_create($end_date);
-                    $date2 = date_create($tgll);
-                    $diff = date_diff($date1, $date2);
-                    $is_grace_periode = 16 - (int)$diff->format("%R%a");
-                }
-            }
-            if ($type == 3) {
-                $end_date = date('Y-m-d', strtotime($data_member->end_member));
-                if ($tgll > $end_date) {
-                    $date1 = date_create($end_date);
-                    $date2 = date_create($tgll);
-                    $diff = date_diff($date1, $date2);
-                    $is_grace_periode = 16 - (int)$diff->format("%R%a");
-                }
-            }
-            if ($type == 1) {
-                $end_date = date('Y-m-d', strtotime($data_member->end_member));
-                $last_month_member_date = date('Y-m-d', strtotime("-1 months", strtotime($end_date)));
-                if ($tgll >= $last_month_member_date && $tgll <= $end_date) $last_month_member = 1;
-                if ($tgll > $end_date) {
-                    $date1 = date_create($end_date);
-                    $date2 = date_create($tgll);
-                    $diff = date_diff($date1, $date2);
-                    $is_grace_periode = 16 - (int)$diff->format("%R%a");
-                    $dataa = array("type" => 2, "updated_at" => date('Y-m-d H:i:s'));
-                    DB::table('members')->where('id_member', $id_member)->update($dataa);
-                    //$data = Members::where($where)->first();
-                }
-            }
-        }
+             $tgll = date('Y-m-d');
+             if ($type == 2 && !empty($cni_id)) {
+                 $end_date = date('Y-m-d', strtotime($data_member->end_member));
+                 if ($tgll > $end_date) {
+                     $date1 = date_create($end_date);
+                     $date2 = date_create($tgll);
+                     $diff = date_diff($date1, $date2);
+                     $is_grace_periode = 16 - (int)$diff->format("%R%a");
+                 }
+             }
+             if ($type == 3) {
+                 $end_date = date('Y-m-d', strtotime($data_member->end_member));
+                 if ($tgll > $end_date) {
+                     $date1 = date_create($end_date);
+                     $date2 = date_create($tgll);
+                     $diff = date_diff($date1, $date2);
+                     $is_grace_periode = 16 - (int)$diff->format("%R%a");
+                 }
+             }
+             if ($type == 1) {
+                 $end_date = date('Y-m-d', strtotime($data_member->end_member));
+                 $last_month_member_date = date('Y-m-d', strtotime("-1 months", strtotime($end_date)));
+                 if ($tgll >= $last_month_member_date && $tgll <= $end_date) $last_month_member = 1;
+                 if ($tgll > $end_date) {
+                     $date1 = date_create($end_date);
+                     $date2 = date_create($tgll);
+                     $diff = date_diff($date1, $date2);
+                     $is_grace_periode = 16 - (int)$diff->format("%R%a");
+                     $dataa = array("type" => 2, "updated_at" => date('Y-m-d H:i:s'));
+                     DB::table('members')->where('id_member', $id_member)->update($dataa);
+                     //$data = Members::where($where)->first();
+                 }
+             }
+         }*/
 
         $is_wishlist = 0;
         $count = 0;
@@ -458,7 +473,7 @@ class ProductController extends Controller
         $id_member = (int)$request->id_member > 0 ? Helper::last_login((int)$request->id_member) : 0;
         $id = (int)$request->id_product > 0 ? (int)$request->id_product : 0;
         $id_member_share = (int)$request->id_member_share > 0 ? (int)$request->id_member_share : 0;
-        $where = array('product.deleted_at' => null, 'id_product' => $id,'is_active' => 1);
+        $where = array('product.deleted_at' => null, 'id_product' => $id, 'is_active' => 1);
 
         $result = array(
             'err_code' => '04',
@@ -468,9 +483,23 @@ class ProductController extends Controller
         $count = 0;
         $count = DB::table('product')->where($where)->count();
         if ($count > 0) {
-            $is_wishlist = DB::table('wishlist')->select('id_product')->where(array('id_member' => $id_member, 'id_product' => $id))->count();
-            $data_member = DB::table('members')->where(array('id_member' => $id_member))->first();
+            $is_wishlist = (int)$id_member > 0 ? DB::table('wishlist')->select('id_product')->where(array('id_member' => $id_member, 'id_product' => $id))->count() : 0;
+            $data_member = (int)$id_member > 0 ? DB::table('members')->where(array('id_member' => $id_member))->first() : '';
             $type = !empty($data_member) ? (int)$data_member->type : 0;
+
+            if (($type == 1 || $type == 3) && (int)$id_member > 0) {
+                $status_akun_expire = strtolower($data_member->status_akun_expire);
+                if ($status_akun_expire == 'expired') {
+                    $result = array(
+                        'err_code' => '09',
+                        'err_msg' => 'akun expired',
+                        'data' => ''
+                    );
+                    return response($result);
+                    return false;
+                }
+            }
+
             $data = DB::table('product')->select('product.*', 'category_name')
                 ->leftJoin('category', 'category.id_category', '=', 'product.id_category')
                 ->where($where)->first();
@@ -568,7 +597,7 @@ class ProductController extends Controller
             $data->list_img = $list_img;
             $data->list_ulasan = $data_ulasan;
             if ($id_member_share > 0) {
-                Helper::share_product((int)$id_member_share, $id_product, 1);
+                Helper::share_product((int)$id_member_share, $id, 1);
             }
             $result = array(
                 'err_code' => '00',

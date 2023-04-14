@@ -11,7 +11,8 @@ class Helper
     static function last_login($id_member = 0)
     {
         $tgl = date('Y-m-d H:i:s');
-        DB::table('members')->where('id_member', $id_member)->update(['last_login' => $tgl]);
+        $where = ['deleted_at' => null, 'id_member' => $id_member, 'status_akun_expire' => null];
+        DB::table('members')->where($where)->update(['last_login' => $tgl]);
         return $id_member;
     }
 
@@ -670,7 +671,7 @@ class Helper
                 array_push($target, $dt->token_fcm);
             }
             $fields['registration_ids'] = $target;
-            Log::info('send_fcm - '.date('Y-m-d H:i:s'));
+            Log::info('send_fcm - ' . date('Y-m-d H:i:s'));
             Log::info($fields);
             $headers = array(
                 'Content-Type:application/json',
@@ -706,7 +707,7 @@ class Helper
 
         if (!empty($targets)) {
             $fields['registration_ids'] = $targets;
-            Log::info('send_fcm_multiple - '.date('Y-m-d H:i:s'));
+            Log::info('send_fcm_multiple - ' . date('Y-m-d H:i:s'));
             Log::info($fields);
             $headers = array(
                 'Content-Type:application/json',
