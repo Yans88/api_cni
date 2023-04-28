@@ -636,7 +636,7 @@ class Helper
         curl_close($curl);
 
         $dt_log = array(
-            "api_name" => "submit_voucher",
+            "api_name" => "unflag_voucher",
             "param_from_fe" => serialize(array('id_transaksi' => $id_transaksi)),
             "param_to_cni" => serialize($postfields),
             "endpoint" => $url,

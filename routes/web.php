@@ -1,6 +1,6 @@
 <?php
 
-/** @var \Laravel\Lumen\Routing\Router $router */
+/** @var Router $router */
 
 /*
 |--------------------------------------------------------------------------
@@ -13,63 +13,64 @@
 |
 */
 
+use Laravel\Lumen\Routing\Router;
+
 $router->get('/', function () use ($router) {
     // return $router->app->version();
-    $end_member =  date('Y-m-d', strtotime('+1 years'));
-    return 'CMS'.rand(10000, 99999);
+    $end_member = date('Y-m-d', strtotime('+1 years'));
+    return 'CMS' . rand(10000, 99999);
 });
 
-$router->get('/payment_suite/{id_transaksi}', function ($id_transaksi)  {
-	$tgl = date('Y-m-d H:i:s');
-	$base64 = base64_decode($id_transaksi);
-	$vowels = array("n", "c", "i", "C", "I", "N");
-	$_id_transaksi = str_replace($vowels,"",$base64);
-	$where = array('transaksi.status' => 0, 'id_transaksi' => $_id_transaksi);
-		$data = DB::table('transaksi')->select(
-            'transaksi.*',
-            'members.nama as nama_member',
-            'members.email'
-        )
-            ->where($where)
-            ->leftJoin('members', 'members.id_member', '=', 'transaksi.id_member')->first();
+$router->get('/payment_suite/{id_transaksi}', function ($id_transaksi) {
+    $tgl = date('Y-m-d H:i:s');
+    $base64 = base64_decode($id_transaksi);
+    $vowels = array("n", "c", "i", "C", "I", "N");
+    $_id_transaksi = str_replace($vowels, "", $base64);
+    $where = array('transaksi.status' => 0, 'id_transaksi' => $_id_transaksi);
+    $data = DB::table('transaksi')->select(
+        'transaksi.*',
+        'members.nama as nama_member',
+        'members.email'
+    )
+        ->where($where)
+        ->leftJoin('members', 'members.id_member', '=', 'transaksi.id_member')->first();
 
-		$id_transaksi = $data->id_transaksi;
-		$expired_payment = date("Y-m-d H:i", strtotime($data->expired_payment));
-        $ttl_price = $data->nominal_doku;
-		$MALLID = env('MALLID_CC');
-		$shared_key = env('SHAREDKEY');
-        $words = $ttl_price . '.00' . $MALLID . ''.$shared_key. '' . $id_transaksi;
-		$basket = 'Paket ' . $data->nama_member . ' No. Order #' . $id_transaksi . ',' . number_format($ttl_price, 2, ".", "") . ',1,' . number_format($ttl_price, 2, ".", "");
-		if($expired_payment <= $tgl){
-			$res = array(
-				'mall_id'		=> 0,
-				'nama_member'	=> $data->nama_member,
-				'email'			=> $data->email,
-				'basket'		=> '',
-				'ttl_price'		=> '',
-				'words'			=> '',
-				'tgl'			=> '',
-				'session_id'	=> '',
-				'id_transaksi'	=> 0
-			);
-		}else{
-			$res = array(
-				'mall_id'		=> $MALLID,
-				'nama_member'	=> $data->nama_member,
-				'email'			=> $data->email,
-				'basket'		=> $basket,
-				'ttl_price'		=> $ttl_price,
-				'words_ori'		=> $words,
-				'words'			=> sha1($words),
-				'tgl'			=> date('YmdHis'),
-				'session_id'	=> $data->session_id,
-				'id_transaksi'	=> $_id_transaksi
-			);
-		}
+    $id_transaksi = $data->id_transaksi;
+    $expired_payment = date("Y-m-d H:i", strtotime($data->expired_payment));
+    $ttl_price = $data->nominal_doku;
+    $MALLID = env('MALLID_CC');
+    $shared_key = env('SHAREDKEY');
+    $words = $ttl_price . '.00' . $MALLID . '' . $shared_key . '' . $id_transaksi;
+    $basket = 'Paket ' . $data->nama_member . ' No. Order #' . $id_transaksi . ',' . number_format($ttl_price, 2, ".", "") . ',1,' . number_format($ttl_price, 2, ".", "");
+    if ($expired_payment <= $tgl) {
+        $res = array(
+            'mall_id' => 0,
+            'nama_member' => $data->nama_member,
+            'email' => $data->email,
+            'basket' => '',
+            'ttl_price' => '',
+            'words' => '',
+            'tgl' => '',
+            'session_id' => '',
+            'id_transaksi' => 0
+        );
+    } else {
+        $res = array(
+            'mall_id' => $MALLID,
+            'nama_member' => $data->nama_member,
+            'email' => $data->email,
+            'basket' => $basket,
+            'ttl_price' => $ttl_price,
+            'words_ori' => $words,
+            'words' => sha1($words),
+            'tgl' => date('YmdHis'),
+            'session_id' => $data->session_id,
+            'id_transaksi' => $_id_transaksi
+        );
+    }
 
     return view('greeting', $res);
 });
-
 
 
 $router->post('/admin', 'AdminController@index');
@@ -133,6 +134,7 @@ $router->post('/cek_cni_id', 'MemberController@cek_cniid');
 $router->post('/verify_cek_cni_id', 'MemberController@verify_cek_cniid');
 $router->post('/cancel_transaksi_member', 'MemberController@cancel_transaksi');
 $router->post('/export_member', 'MemberController@report');
+$router->post('/delete_account', 'MemberController@delete_account');
 
 $router->post('/category', 'CategoryController@index');
 $router->post('/simpan_category', 'CategoryController@store');

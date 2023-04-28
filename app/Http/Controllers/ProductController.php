@@ -49,7 +49,16 @@ class ProductController extends Controller
             if ($status_akun_expire == 'expired') {
                 $result = array(
                     'err_code' => '09',
-                    'err_msg' => 'akun expired',
+                    'err_msg' => 'Akun anda expired',
+                    'data' => ''
+                );
+                return response($result);
+                return false;
+            }
+            if ($status_akun_expire == 'deleted') {
+                $result = array(
+                    'err_code' => '09',
+                    'err_msg' => 'Akun anda dihapus',
                     'data' => ''
                 );
                 return response($result);
@@ -492,7 +501,16 @@ class ProductController extends Controller
                 if ($status_akun_expire == 'expired') {
                     $result = array(
                         'err_code' => '09',
-                        'err_msg' => 'akun expired',
+                        'err_msg' => 'Akun anda expired',
+                        'data' => ''
+                    );
+                    return response($result);
+                    return false;
+                }
+                if ($status_akun_expire == 'deleted') {
+                    $result = array(
+                        'err_code' => '09',
+                        'err_msg' => 'Akun anda dihapus',
                         'data' => ''
                     );
                     return response($result);

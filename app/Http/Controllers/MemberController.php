@@ -98,7 +98,7 @@ class MemberController extends Controller
 
         $id_member = (int)$request->id_member;
         $id_token = (int)$request->id_token_fcm > 0 ? (int)$request->id_token_fcm : 0;
-        $where = ['deleted_at' => null, 'id_member' => $id_member, 'status_akun_expire' => null];
+        $where = ['deleted_at' => null, 'id_member' => $id_member];
         $count = Members::where($where)->count();
         $result = array(
             'err_code' => '04',
@@ -109,6 +109,19 @@ class MemberController extends Controller
         $is_grace_periode = 0;
         if ((int)$count > 0) {
             $data = Members::where($where)->first();
+            $status_akun_expire = $data->status_akun_expire;
+            if ($status_akun_expire == 'expired') {
+                return response($result);
+            }
+            if ($status_akun_expire == 'deleted') {
+                $result = array(
+                    'err_code' => '09',
+                    'err_msg' => 'Akun anda dihapus',
+                    'data' => ''
+                );
+                return response($result);
+                return response($result);
+            }
             $photo = !empty($data->photo) ? env('APP_URL') . '/api_cni/uploads/members/' . $data->photo : '';
             $type = (int)$data->type;
             $cni_id = !empty($data->cni_id) ? $data->cni_id : '';
@@ -120,10 +133,10 @@ class MemberController extends Controller
                 $diff = date_diff($d1, $d2);
                 if ((int)$diff->invert > 0) {
                     DB::table('members')->where('id_member', $id_member)->update(['status_akun_expire' => 'expired', 'updated_at' => $tgl]);
-                    //DB::table('fcm_token')->where(array('id_member' => $id_member))->orWhere(array('token_fcm' => null))->delete();
+                    DB::table('fcm_token')->where(array('id_member' => $id_member))->orWhere(array('token_fcm' => null))->delete();
                     $result = array(
                         'err_code' => '09',
-                        'err_msg' => 'akun expired',
+                        'err_msg' => 'Akun anda expired',
                         'data' => ''
                     );
                     return response($result);
@@ -401,7 +414,16 @@ class MemberController extends Controller
             if ($status_akun_expire == 'expired') {
                 $result = array(
                     'err_code' => '09',
-                    'err_msg' => 'akun expired',
+                    'err_msg' => 'Akun anda expired',
+                    'data' => ''
+                );
+                return response($result);
+                return false;
+            }
+            if ($status_akun_expire == 'deleted') {
+                $result = array(
+                    'err_code' => '09',
+                    'err_msg' => 'Akun anda dihapus',
                     'data' => ''
                 );
                 return response($result);
@@ -482,7 +504,16 @@ class MemberController extends Controller
             if ($status_akun_expire == 'expired') {
                 $result = array(
                     'err_code' => '09',
-                    'err_msg' => 'akun expired',
+                    'err_msg' => 'Akun anda expired',
+                    'data' => ''
+                );
+                return response($result);
+                return false;
+            }
+            if ($status_akun_expire == 'deleted') {
+                $result = array(
+                    'err_code' => '09',
+                    'err_msg' => 'Akun anda dihapus',
                     'data' => ''
                 );
                 return response($result);
@@ -559,7 +590,16 @@ class MemberController extends Controller
         if ($status_akun_expire == 'expired') {
             $result = array(
                 'err_code' => '09',
-                'err_msg' => 'akun expired',
+                'err_msg' => 'Akun anda expired',
+                'data' => ''
+            );
+            return response($result);
+            return false;
+        }
+        if ($status_akun_expire == 'deleted') {
+            $result = array(
+                'err_code' => '09',
+                'err_msg' => 'Akun anda dihapus',
                 'data' => ''
             );
             return response($result);
@@ -638,7 +678,16 @@ class MemberController extends Controller
         if ($status_akun_expire == 'expired') {
             $result = array(
                 'err_code' => '09',
-                'err_msg' => 'akun expired',
+                'err_msg' => 'Akun anda expired',
+                'data' => ''
+            );
+            return response($result);
+            return false;
+        }
+        if ($status_akun_expire == 'deleted') {
+            $result = array(
+                'err_code' => '09',
+                'err_msg' => 'Akun anda dihapus',
                 'data' => ''
             );
             return response($result);
@@ -677,7 +726,16 @@ class MemberController extends Controller
         if ($status_akun_expire == 'expired') {
             $result = array(
                 'err_code' => '09',
-                'err_msg' => 'akun expired',
+                'err_msg' => 'Akun anda expired',
+                'data' => ''
+            );
+            return response($result);
+            return false;
+        }
+        if ($status_akun_expire == 'deleted') {
+            $result = array(
+                'err_code' => '09',
+                'err_msg' => 'Akun anda dihapus',
                 'data' => ''
             );
             return response($result);
@@ -733,7 +791,16 @@ class MemberController extends Controller
         if ($status_akun_expire == 'expired') {
             $result = array(
                 'err_code' => '09',
-                'err_msg' => 'akun expired',
+                'err_msg' => 'Akun anda expired',
+                'data' => ''
+            );
+            return response($result);
+            return false;
+        }
+        if ($status_akun_expire == 'deleted') {
+            $result = array(
+                'err_code' => '09',
+                'err_msg' => 'Akun anda dihapus',
                 'data' => ''
             );
             return response($result);
@@ -2298,7 +2365,7 @@ class MemberController extends Controller
     function conf_pass(Request $request)
     {
 
-        DB::connection()->enableQueryLog();
+        //DB::connection()->enableQueryLog();
         $where = array('conf_pass' => null);
         $count = DB::table('members')->where($where)->count();
         Log::info(DB::getQueryLog());
@@ -2317,7 +2384,7 @@ class MemberController extends Controller
                 'pass' => $pass
             );
             DB::table('members')->where(array('id_member' => $id_member))->update($res);
-            Log::info(DB::getQueryLog());
+            //Log::info(DB::getQueryLog());
             $_data = DB::table('members')->select('id_member', 'nama', 'email', 'cni_id', 'type', 'pass_1st', 'pass', 'conf_pass')->where(array('id_member' => $id_member))->first();
             $result = array(
                 'err_code' => '00',
@@ -2364,7 +2431,7 @@ class MemberController extends Controller
             return false;
         }
         $count = 0;
-        $where = ['deleted_at' => null, 'cni_id' => $cni_id];
+        $where = ['deleted_at' => null, 'cni_id' => $cni_id, 'status_akun_expire' => null];
         $count = Members::where($where)->count();
         if ($count > 0) {
             $result = array(
@@ -2674,6 +2741,42 @@ class MemberController extends Controller
                 'total_data' => $count,
                 'data' => $_data
             );
+        }
+        return response($result);
+    }
+
+    function delete_account(Request $request)
+    {
+        $tgl = date('Y-m-d H:i:s');
+        $id_member = (int)$request->id_member > 0 ? (int)$request->id_member : 0;
+
+        if ($id_member <= 0) {
+            $result = array(
+                'err_code' => '06',
+                'err_msg' => 'id_member required',
+                'data' => null
+            );
+            return response($result);
+            return false;
+        }
+        $where = ['deleted_at' => null, 'id_member' => $id_member, 'status_akun_expire' => null];
+        $count = Members::where($where)->count();
+        $result = array(
+            'err_code' => '04',
+            'err_msg' => 'data not found',
+            'data' => $id_member
+        );
+        if ((int)$count > 0) {
+            Helper::last_login((int)$request->id_member);
+            DB::table('members')->where('id_member', $id_member)->update(['status_akun_expire' => 'deleted', 'updated_at' => $tgl]);
+            DB::table('fcm_token')->where(array('id_member' => $id_member))->orWhere(array('token_fcm' => null))->delete();
+            $result = array(
+                'err_code' => '09',
+                'err_msg' => 'Akun anda dihapus',
+                'data' => ''
+            );
+            return response($result);
+
         }
         return response($result);
     }
