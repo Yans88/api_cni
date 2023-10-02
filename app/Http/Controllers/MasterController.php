@@ -184,7 +184,7 @@ class MasterController extends Controller
             $origin_name = $_res[0]->origin_name;
             $destination_name = $_res[0]->destination_name;
             foreach ($_res as $r) {
-                if ($r->service_code == "CTC19" || $r->service_code == "REG19") {
+                if ($r->service_display == "CTC" || $r->service_display == "REG") {
                     $_r[] = array(
                         "service_display" => $r->service_display,
                         "service_code" => $r->service_code,

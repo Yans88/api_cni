@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 
 class ProvinsiController extends Controller
 {
@@ -322,7 +321,6 @@ class ProvinsiController extends Controller
 
     function assign_area(Request $request)
     {
-        Log::info($request);
         $tgl = date('Y-m-d H:i:s');
         $id = (int)$request->id_wh > 0 ? (int)$request->id_wh : 0;
         $id_operator = (int)$request->id_operator > 0 ? (int)$request->id_operator : 0;

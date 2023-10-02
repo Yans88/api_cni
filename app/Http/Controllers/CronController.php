@@ -55,7 +55,7 @@ class CronController extends Controller
         $dataVoucher = DB::table('unflag_voucher')->where($where)->first();
         $id_trans = isset($dataVoucher->id_transaksi) && (int)$dataVoucher->id_transaksi > 0 ? $dataVoucher->id_transaksi : 0;
         if ($id_trans > 0) {
-            Helper::unflagVoucher($dataVoucher->cni_id, $dataVoucher->kodevoucher, $dataVoucher->id_member, $id_trans);
+            Helper::unflagVoucher($dataVoucher->cni_id, $dataVoucher->kodevoucher, $dataVoucher->custid, $id_trans);
         }
         $result = array(
             'err_code' => '00',

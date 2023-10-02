@@ -453,7 +453,8 @@ class Helper
             "token" => $token,
             "orderno" => $id_transaksi,
             "ismemberid" => $ismemberid,
-            "newmember" => $newmember,
+            "newmember" => 'N',
+            /*"newmember" => $newmember,*/
             "akunid" => $akunid,
             "emailakun" => $emailakun,
             "nomorn" => $nomorn,
@@ -508,7 +509,7 @@ class Helper
         ));
         $response = curl_exec($curl);
         curl_close($curl);
-
+        DB::connection()->enableQueryLog();
         $dt_log = array(
             "api_name" => $text . "/send_order_cni",
             "param_from_fe" => serialize(array('id_transaksi' => $id_transaksi)),
@@ -520,7 +521,9 @@ class Helper
         );
 
         DB::table('log_api')->insert($dt_log);
+        Log::info(DB::getQueryLog());
         $res = json_decode($response);
+        Log::info($res);
         $result = isset($res->result) ? $res->result : '';
         $gen_cni_id = 0;
         if (strtolower($result) == 'y') {
@@ -606,8 +609,8 @@ class Helper
 
     static function unflagVoucher($memberid = '', $kodevoucher = '', $custid = '', $id_transaksi = 0)
     {
-        $custid = empty($cni_id) ? $memberid : '';
-        $memberid = $cni_id;
+        $custid = empty($custid) ? $memberid : '';
+        $memberid = $memberid;
         $tgl = date('Y-m-d H:i:s');
         $url = env('URL_UNFLAG_VOUCHER_CNI');
         $token = env('TOKEN_UNFLAG_VOUCHER_CNI');

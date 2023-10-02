@@ -251,7 +251,7 @@ class DokuController extends Controller
                 );
                 DB::table('transaksi')->where('id_transaksi', $id_transaksi)->update($data);
 
-                DB::connection()->enableQueryLog();
+                
                 $notif_fcm = array(
                     'body' => 'Pembayaran anda sudah kami terima dan pesanan anda akan kami proses segera',
                     'title' => 'CNI',
@@ -604,6 +604,7 @@ class DokuController extends Controller
         $transaction = $input['transaction'];
         $id_transaksi = $order['invoice_number'];
         $status = strtolower($transaction['status']);
+		Log::info($status);
         $where = array('transaksi.status' => 0, 'id_transaksi' => $id_transaksi);
         $count = DB::table('transaksi')->where($where)->count();
         $is_upgrade = 0;

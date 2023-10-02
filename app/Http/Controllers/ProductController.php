@@ -187,20 +187,21 @@ class ProductController extends Controller
         if (!empty($whereIn)) {
             if (!empty($keyword)) {
                 $_data = DB::table('product')->select('product.*', 'category_name')
-                    ->whereIn('id_product', $whereIn);
-                if ($is_cms <= 0) $_data = $_data->where('product.qty', '>', 0)->whereNotIn('id_product', [64, 65, 66]);
+                    ->whereIn('product.id_product', $whereIn);
+                if ($is_cms <= 0) $_data = $_data->where('product.qty', '>', 0)->whereNotIn('product.id_product', [64, 65, 66]);
                 $_data = $_data->leftJoin('category', 'category.id_category', '=', 'product.id_category')
-                    ->where($where)->whereRaw("(LOWER(product.product_name) like '%" . $keyword . "%' or LOWER(product.kode_produk) like '%" . $keyword . "%')")->get();
+                    ->leftJoin('tags_product', 'tags_product.id_product', '=', 'product.id_product')
+                    ->where($where)->whereRaw("(LOWER(product.product_name) like '%" . $keyword . "%' or LOWER(product.kode_produk) like '%" . $keyword . "%' or LOWER(tags_product.tags_name) like '%" . $keyword . "%')")->get();
                 $count = count($_data);
             } else {
                 $count = DB::table('product')->where($where);
-                if ($is_cms <= 0) $_data = $count->where('product.qty', '>', 0)->whereNotIn('id_product', [64, 65, 66]);
-                $count = $count->whereIn('id_product', $whereIn)->count();
+                if ($is_cms <= 0) $_data = $count->where('product.qty', '>', 0)->whereNotIn('product.id_product', [64, 65, 66]);
+                $count = $count->whereIn('product.id_product', $whereIn)->count();
                 $per_page = $per_page > 0 ? $per_page : $count;
                 $offset = ($page_number - 1) * $per_page;
                 $_data = DB::table('product')->select('product.*', 'category_name')
-                    ->whereIn('id_product', $whereIn);
-                if ($is_cms <= 0) $_data = $_data->where('product.qty', '>', 0)->whereNotIn('id_product', [64, 65, 66]);
+                    ->whereIn('product.id_product', $whereIn);
+                if ($is_cms <= 0) $_data = $_data->where('product.qty', '>', 0)->whereNotIn('product.id_product', [64, 65, 66]);
                 $_data = $_data->leftJoin('category', 'category.id_category', '=', 'product.id_category')
                     ->where($where)->offset($offset)->limit($per_page)->orderByRaw($sort_column)->get();
             }
@@ -362,6 +363,7 @@ class ProductController extends Controller
         $priority_number_favourite = (int)$request->priority_number_favourite > 0 && (int)$favourite > 0 ? $request->priority_number_favourite : 0;
         $path_img = $request->file("img");
         $kode_produk = $request->kode_produk;
+        $list_tags = $request->tags;
         if (!$this->isValidProductCode($id, $kode_produk)) {
             $result = array(
                 'err_code' => '06',
@@ -442,6 +444,19 @@ class ProductController extends Controller
         }
         $result = array();
         if ($id > 0) {
+            $dtInsert = [];
+            DB::table('tags_product')->where('id_product', $id)->delete();
+            if (count($list_tags) > 0) {
+                for ($i = 0; $i < count($list_tags); $i++) {
+                    if (!empty($list_tags[$i])) {
+                        $dtInsert[] = array(
+                            'id_product' => $id,
+                            'tags_name' => $list_tags[$i],
+                        );
+                    }
+                }
+                if (count($dtInsert) > 0) DB::table('tags_product')->insert($dtInsert);
+            }
             $data += array('id_product' => $id);
             $result = array(
                 'err_code' => '00',
@@ -549,6 +564,15 @@ class ProductController extends Controller
                 }
             }
             $where = array();
+            $where = array('id_product' => $id);
+            $data_tags = DB::table('tags_product')->where($where)->get();
+            $list_tags = [];
+            if (!empty($data_tags)) {
+                foreach ($data_tags as $d) {
+                    $list_tags[] = $d->tags_name;
+                }
+            }
+            $where = array();
             $where = array('status_ulasan' => 2, 'id_product' => $id);
             $cnt_ulasan = DB::table('transaksi_detail')->where($where)->count();
             $data_ulasan = '';
@@ -612,6 +636,7 @@ class ProductController extends Controller
             $data->is_limit_beli = (int)$jml_beli >= (int)$data->jml_limit_beli ? 1 : 0;
             $data->terjual = rand(1, 1000);
             $data->qty_cart = $qty_cart;
+            $data->tags = $list_tags;
             $data->list_img = $list_img;
             $data->list_ulasan = $data_ulasan;
             if ($id_member_share > 0) {

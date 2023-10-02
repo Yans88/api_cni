@@ -30,11 +30,12 @@ class TransaksiController extends Controller
         $tgl = Carbon::now();
 
         $id_operator = (int)$request->id_operator > 0 ? (int)$request->id_operator : 0;
-        $sql = "select id_transaksi,ewallet,ttl_price, id_member,type_member,type_voucher,kode_voucher,cni_id from transaksi where status=0 and expired_payment::timestamp <= '" . $tgl . "'";
+        $sql = "select id_transaksi,ewallet,ttl_price, id_member,type_member,type_voucher,kode_voucher,cni_id,id_voucher from transaksi where status=0 and expired_payment::timestamp <= '" . $tgl . "'";
         $trans_expired = DB::select(DB::raw($sql));
         $whereIn = array();
         $dt_refund_ewallet = array();
         $dt_refund_voucher = array();
+
         if (count($trans_expired) > 0) {
             //update status ke expired payment
             foreach ($trans_expired as $te) {
@@ -58,6 +59,43 @@ class TransaksiController extends Controller
                         'status' => 0,
                         'created_at' => $tgl
                     );
+                }
+
+                $id_voucher = (int)$te->id_voucher;
+                $id_member = (int)$te->id_member;
+                if ((int)$id_voucher > 0 && !empty($te->kode_voucher) && (int)$te->type_voucher != 4) {
+                    $where = array('vouchers.deleted_at' => null, 'id_voucher' => $id_voucher);
+                    $dt_voucher = DB::table('vouchers')->where($where)->first();
+                    $user_tertentu = (int)$dt_voucher->user_tertentu;
+                    $is_limited = (int)$dt_voucher->is_limited;
+                    $kuota = (int)$dt_voucher->sisa;
+                    $cnt_used = (int)$dt_voucher->cnt_used - 1;
+                    $sisa = (int)$kuota + 1;
+                    if ((int)$is_limited > 0) {
+                        $dt_voucher = array();
+                        $dt_voucher = array(
+                            'cnt_used' => $cnt_used,
+                            'sisa' => $sisa
+                        );
+
+                        DB::table('vouchers')->where('id_voucher', $id_voucher)->update($dt_voucher);
+                    }
+                    if ($id_voucher > 0) {
+                        $where_voucher_member = array(
+                            'id_voucher' => $id_voucher,
+                            'id_member' => $id_member,
+                            "deleted_at" => null,
+                            "is_used" => $te->id_transaksi
+                        );
+                        if ($user_tertentu > 0) {
+                            DB::table('list_member_voucher')->where($where_voucher_member)->update(array('is_used' => null, 'updated_at' => $tgl, 'updated_by' => -1));
+
+                        } else {
+                            DB::table('list_member_voucher')->where($where_voucher_member)
+                                ->update(array('is_used' => null, 'updated_at' => $tgl, 'updated_by' => -1, 'deleted_at' => $tgl, 'deleted_by' => -1));
+                        }
+                    }
+
                 }
             }
             DB::table('transaksi')->where(array("status" => 0))
@@ -215,7 +253,7 @@ class TransaksiController extends Controller
         $alamat_dc = !empty($request->alamat_dc) ? $request->alamat_dc : '';
 
         $is_regmitra = (int)$request->is_regmitra > 0 ? (int)$request->is_regmitra : 0;
-        $is_upgrade = (int)$request->is_upgrade > 0 ? (int)$request->is_upgrade : 0;
+        $is_upgrade = (int)$request->is_upgrade > 0 ? 0 : 0;
 
         $kodevoucher = !empty($request->kodevoucher) ? $request->kodevoucher : '';
         $vouchervalue = !empty($request->vouchervalue) ? $request->vouchervalue : '';
@@ -437,7 +475,7 @@ class TransaksiController extends Controller
             $payment_name .= !empty($payment_name) ? " & " . $_paymentName : $_paymentName;
         }
 
-        $expired_payment = (int)$is_regmitra > 0 ? date("Y-m-d H:i", strtotime('+3 hours', strtotime($tgl))) : date("Y-m-d H:i", strtotime('+24 hours', strtotime($tgl)));
+        $expired_payment = date("Y-m-d H:i", strtotime('+4 hours', strtotime($tgl)));
         $status = 0;
         $dt_trans = array(
             "id_member" => (int)$is_regmitra > 0 ? 0 : $id_member,
@@ -1494,7 +1532,6 @@ class TransaksiController extends Controller
             DB::table('transaksi')->where('id_transaksi', $id_transaksi)->delete();
             DB::table('transaksi_detail')->where('id_trans', $id_transaksi)->delete();
         }
-
         $result = array(
             'err_code' => '00',
             'err_msg' => 'ok',
